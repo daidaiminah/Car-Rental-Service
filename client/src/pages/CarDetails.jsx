@@ -58,15 +58,8 @@ const CarDetails = () => {
     make: '',
     model: '',
     year: new Date().getFullYear(),
-    color: '',
-    licensePlate: '',
-    vin: '',
-    mileage: 0,
-    dailyRate: '',
-    fuelType: 'Gasoline',
-    transmission: 'Automatic',
-    status: 'Available',
-    features: []
+    rentalPricePerDay: '',
+    isAvailable: true
   });
   
   // Update form data when car data is loaded
@@ -76,15 +69,8 @@ const CarDetails = () => {
         make: car.make || '',
         model: car.model || '',
         year: car.year || new Date().getFullYear(),
-        color: car.color || '',
-        licensePlate: car.licensePlate || '',
-        vin: car.vin || '',
-        mileage: car.mileage || 0,
-        dailyRate: car.dailyRate || '',
-        fuelType: car.fuelType || 'Gasoline',
-        transmission: car.transmission || 'Automatic',
-        status: car.status || 'Available',
-        features: car.features || []
+        rentalPricePerDay: car.rentalPricePerDay || '',
+        isAvailable: car.isAvailable !== undefined ? car.isAvailable : true
       });
     }
   }, [car]);
@@ -105,8 +91,7 @@ const CarDetails = () => {
       const carData = {
         ...formData,
         year: parseInt(formData.year),
-        mileage: parseInt(formData.mileage),
-        dailyRate: parseFloat(formData.dailyRate)
+        rentalPricePerDay: parseFloat(formData.rentalPricePerDay)
       };
       
       if (id === 'new') {
@@ -382,64 +367,30 @@ const CarDetails = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-secondary-light mb-1">Color</label>
-                <input 
-                  type="text" 
-                  name="color"
-                  value={formData.color}
-                  onChange={handleInputChange}
-                  className="input" 
-                  placeholder="Enter color" 
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-secondary-light mb-1">License Plate</label>
-                <input 
-                  type="text" 
-                  name="licensePlate"
-                  value={formData.licensePlate}
-                  onChange={handleInputChange}
-                  className="input" 
-                  placeholder="Enter license plate number" 
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-secondary-light mb-1">VIN</label>
-                <input 
-                  type="text" 
-                  name="vin"
-                  value={formData.vin}
-                  onChange={handleInputChange}
-                  className="input" 
-                  placeholder="Enter VIN" 
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-secondary-light mb-1">Mileage</label>
+                <label className="block text-sm font-medium text-secondary-light mb-1">Rental Price Per Day ($)</label>
                 <input 
                   type="number" 
-                  name="mileage"
-                  value={formData.mileage}
+                  name="rentalPricePerDay"
+                  value={formData.rentalPricePerDay}
                   onChange={handleInputChange}
                   className="input" 
-                  placeholder="Enter mileage" 
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-secondary-light mb-1">Daily Rate ($)</label>
-                <input 
-                  type="number" 
-                  name="dailyRate"
-                  value={formData.dailyRate}
-                  onChange={handleInputChange}
-                  className="input" 
-                  placeholder="Enter daily rate" 
+                  placeholder="Enter rental price per day" 
                   step="0.01"
                   required
                 />
+              </div>
+              <div className="flex items-center">
+                <input 
+                  type="checkbox" 
+                  id="isAvailable"
+                  name="isAvailable"
+                  checked={formData.isAvailable}
+                  onChange={(e) => setFormData({...formData, isAvailable: e.target.checked})}
+                  className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                />
+                <label htmlFor="isAvailable" className="ml-2 block text-sm text-gray-700">
+                  Available for rent
+                </label>
               </div>
               <div>
                 <label className="block text-sm font-medium text-secondary-light mb-1">Fuel Type</label>

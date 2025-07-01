@@ -86,10 +86,12 @@ const RentalDetails = () => {
     customerId: '',
     carId: '',
     startDate: '',
-    endDate: '',
-    notes: '',
-    status: 'Upcoming'
+    endDate: ''
   });
+  
+  // State to track selected car's daily rate
+  const [dailyRate, setDailyRate] = useState(0);
+  const [totalCost, setTotalCost] = useState(0);
 
   // Update form data when rental data is loaded
   useEffect(() => {
@@ -98,12 +100,46 @@ const RentalDetails = () => {
         customerId: rental.customerId || '',
         carId: rental.carId || '',
         startDate: rental.startDate || '',
-        endDate: rental.endDate || '',
-        notes: rental.notes || '',
-        status: rental.status || 'Upcoming'
+        endDate: rental.endDate || ''
       });
+      
+      if (rental.dailyRate) {
+        setDailyRate(rental.dailyRate);
+      }
+      
+      if (rental.startDate && rental.endDate && rental.dailyRate) {
+        const days = calculateNumberOfDays(rental.startDate, rental.endDate);
+        setTotalCost(days * rental.dailyRate);
+      }
     }
   }, [rental]);
+  
+  // Calculate total cost when dates or car changes
+  useEffect(() => {
+    if (formData.startDate && formData.endDate && dailyRate > 0) {
+      const days = calculateNumberOfDays(formData.startDate, formData.endDate);
+      setTotalCost(days * dailyRate);
+    } else {
+      setTotalCost(0);
+    }
+  }, [formData.startDate, formData.endDate, dailyRate]);
+  
+  // Update daily rate when car is selected
+  const handleCarChange = (e) => {
+    const selectedCarId = e.target.value;
+    const selectedCar = availableCars.find(car => car.id === parseInt(selectedCarId));
+    
+    setFormData({
+      ...formData,
+      carId: selectedCarId
+    });
+    
+    if (selectedCar) {
+      setDailyRate(selectedCar.dailyRate);
+    } else {
+      setDailyRate(0);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -120,9 +156,11 @@ const RentalDetails = () => {
     try {
       // Prepare rental data
       const rentalData = {
-        ...formData,
         customerId: parseInt(formData.customerId),
         carId: parseInt(formData.carId),
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        totalCost: totalCost
       };
       
       if (id === 'new') {
@@ -139,8 +177,8 @@ const RentalDetails = () => {
           ...updatedRental,
           customerName: customerData.name,
           carName: `${carData.make} ${carData.model} (${carData.year})`,
-          dailyRate: carData.dailyRate,
-          totalAmount: calculateNumberOfDays(updatedRental.startDate, updatedRental.endDate) * carData.dailyRate
+          dailyRate: carData.rentalPricePerDay,
+          totalAmount: updatedRental.totalCost
         });
       }
     } catch (err) {

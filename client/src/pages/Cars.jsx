@@ -74,12 +74,12 @@ const Cars = () => {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      {/* <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Cars</h1>
         <Link to="/cars/new" className="btn-primary">
           Add Car
         </Link>
-      </div>
+      </div> */}
 
       {/* Search and Filter */}
       <div className="card mb-6">

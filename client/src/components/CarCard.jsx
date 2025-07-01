@@ -8,9 +8,13 @@ const CarCard = ({ car }) => {
     <div className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300">
       <div className="relative">
         <img 
-          src={car.images?.[0] || 'https://via.placeholder.com/300x200?text=Car+Image'} 
-          alt={car.make + ' ' + car.model}
+          src={car.image || 'https://via.placeholder.com/300x200?text=Car+Image'} 
+          alt={`${car.make} ${car.model}`}
           className="w-full h-48 object-cover"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = 'https://via.placeholder.com/300x200?text=Car+Image';
+          }}
         />
         <div className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5">
           <button className="text-gray-500 hover:text-yellow-500">
@@ -51,7 +55,7 @@ const CarCard = ({ car }) => {
 
         <Link 
           to={`/cars/${car.id}`}
-          className="mt-4 block w-full bg-blue-600 hover:bg-blue-700 text-white text-center py-2 px-4 rounded-lg font-medium transition-colors"
+          className="mt-4 block w-full bg-primary hover:bg-primary-dark text-white text-center py-2 px-4 rounded-lg font-medium transition-colors"
         >
           Book Now
         </Link>

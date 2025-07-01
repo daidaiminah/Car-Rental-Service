@@ -50,9 +50,7 @@ const CustomerDetails = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    phone: '',
-    address: '',
-    driverLicense: ''
+    phone: ''
   });
   
   // Update form data when customer data is loaded
@@ -61,9 +59,7 @@ const CustomerDetails = () => {
       setFormData({
         name: customer.name || '',
         email: customer.email || '',
-        phone: customer.phone || '',
-        address: customer.address || '',
-        driverLicense: customer.driverLicense || ''
+        phone: customer.phone || ''
       });
     }
   }, [customer]);
@@ -313,29 +309,7 @@ const CustomerDetails = () => {
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-secondary-light mb-1">Driver's License</label>
-                <input 
-                  type="text" 
-                  name="driverLicense"
-                  value={formData.driverLicense}
-                  onChange={handleInputChange}
-                  className="input" 
-                  placeholder="Enter driver's license number" 
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-secondary-light mb-1">Address</label>
-                <input 
-                  type="text" 
-                  name="address"
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  className="input" 
-                  placeholder="Enter full address" 
-                  required
-                />
-              </div>
+
             </div>
 
             <div className="mt-6 flex justify-end space-x-3">
