@@ -7,7 +7,8 @@ import carRoute from "./routers/carRoute.js";
 import customerRoute from "./routers/customerRoute.js";
 import rentalRoutes from "./routers/rentalRoutes.js";
 import cors from 'cors';
-// import { createApiUser } from "./utils/momo.js";
+import { createApiUser } from "./utils/momo.js";
+import { generateApiKey } from "./utils/momo.js";
 
 const app = express();
 
@@ -27,6 +28,22 @@ app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (req, res) => {
     res.send("Car Rental API - Welcome!");
+});
+
+app.get("/createApiUser", (req, res) => {
+    const userId = createApiUser();
+    res.json({
+        message: "Api User created successfully",
+    })
+    console.log(userId)
+});
+
+app.get("/generateApiKey", (req, res) => {
+  const apiKey = generateApiKey();
+  res.json({
+      message: "Api Key generated successfully",
+  })
+  console.log(apiKey)
 });
 
 // API Routes
@@ -60,9 +77,7 @@ const startServer = async () => {
     app.listen(serverPort, () => {
       console.log(`Server is running on port ${serverPort}`);
     });
-    // createApiUser();
   } catch (error) {
-    // console.log(createApiUser());
     console.error('Unable to connect to the database:', error);
     process.exit(1);
   }
