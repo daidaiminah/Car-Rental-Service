@@ -1,8 +1,9 @@
 import db from "../models/index.js";
+import { Op } from 'sequelize';
 
 const Rental = db.Rental;
 const Car = db.Car;
-const Customer = db.Customer;
+const User = db.User;
 
 // Helper function to calculate days between two dates
 const calculateDays = (startDate, endDate) => {
@@ -15,13 +16,14 @@ const calculateDays = (startDate, endDate) => {
 // Create a new rental
 export const createRental = async (req, res) => {
   try {
-    const { carId, customerId, startDate, endDate } = req.body;
+    const { carId, startDate, endDate } = req.body;
+    const userId = req.user.id; // Get user ID from auth middleware
     
     // Validate required fields
-    if (!carId || !customerId || !startDate || !endDate) {
+    if (!carId || !startDate || !endDate) {
       return res.status(400).json({ 
         success: false, 
-        message: "Car ID, customer ID, start date, and end date are required fields" 
+        message: "Car ID, start date, and end date are required fields" 
       });
     }
 
@@ -42,12 +44,12 @@ export const createRental = async (req, res) => {
       });
     }
 
-    // Check if customer exists
-    const customer = await Customer.findByPk(customerId);
-    if (!customer) {
+    // Check if user exists
+    const user = await User.findByPk(userId);
+    if (!user) {
       return res.status(404).json({
         success: false,
-        message: `Customer with ID ${customerId} not found`
+        message: `User not found`
       });
     }
 
@@ -70,6 +72,41 @@ export const createRental = async (req, res) => {
       });
     }
 
+    // Check if car is already booked for the selected dates
+    const existingRental = await Rental.findOne({
+      where: {
+        carId,
+        [Op.or]: [
+          {
+            startDate: {
+              [Op.between]: [start, end]
+            }
+          },
+          {
+            endDate: {
+              [Op.between]: [start, end]
+            }
+          },
+          {
+            [Op.and]: [
+              { startDate: { [Op.lte]: start } },
+              { endDate: { [Op.gte]: end } }
+            ]
+          }
+        ],
+        status: {
+          [Op.notIn]: ['cancelled', 'completed']
+        }
+      }
+    });
+
+    if (existingRental) {
+      return res.status(400).json({
+        success: false,
+        message: "Car is not available for the selected dates"
+      });
+    }
+
     // Calculate number of days and total cost
     const days = calculateDays(startDate, endDate);
     const totalCost = days * car.rentalPricePerDay;
@@ -77,14 +114,13 @@ export const createRental = async (req, res) => {
     // Create the rental record
     const newRental = await Rental.create({
       carId,
-      customerId,
-      startDate,
-      endDate,
-      totalCost
+      userId,
+      startDate: start,
+      endDate: end,
+      totalCost,
+      status: 'pending',
+      paymentStatus: 'pending'
     });
-
-    // Update car availability
-    await car.update({ isAvailable: false });
 
     return res.status(201).json({
       success: true,
@@ -105,14 +141,21 @@ export const createRental = async (req, res) => {
   }
 };
 
-// Get all rentals
-export const getAllRentals = async (req, res) => {
+// Get all rentals for the current user
+export const getMyRentals = async (req, res) => {
   try {
+    const userId = req.user.id;
+    
     const rentals = await Rental.findAll({
+      where: { userId },
       include: [
-        { model: Car, as: "car" },
-        { model: Customer, as: "customer" }
-      ]
+        { 
+          model: Car, 
+          as: "car",
+          attributes: ['id', 'make', 'model', 'year', 'image', 'type']
+        }
+      ],
+      order: [['createdAt', 'DESC']]
     });
     
     return res.status(200).json({
@@ -124,27 +167,112 @@ export const getAllRentals = async (req, res) => {
     console.error(error);
     return res.status(500).json({
       success: false,
-      message: "Failed to retrieve rentals",
+      message: "Failed to retrieve your rentals",
       error: error.message
     });
   }
 };
 
-// Get rental by ID
+// Get available cars for a date range
+export const getAvailableCars = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Start date and end date are required"
+      });
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    // Find all cars that are not rented during the selected period
+    const rentedCars = await Rental.findAll({
+      where: {
+        [Op.or]: [
+          {
+            startDate: {
+              [Op.between]: [start, end]
+            }
+          },
+          {
+            endDate: {
+              [Op.between]: [start, end]
+            }
+          },
+          {
+            [Op.and]: [
+              { startDate: { [Op.lte]: start } },
+              { endDate: { [Op.gte]: end } }
+            ]
+          }
+        ],
+        status: {
+          [Op.notIn]: ['cancelled', 'completed']
+        }
+      },
+      attributes: ['carId']
+    });
+
+    const rentedCarIds = rentedCars.map(rental => rental.carId);
+
+    // Get all cars that are not in the rented cars list
+    const availableCars = await Car.findAll({
+      where: {
+        id: {
+          [Op.notIn]: rentedCarIds
+        },
+        isAvailable: true
+      },
+      attributes: ['id', 'make', 'model', 'year', 'type', 'rentalPricePerDay', 'image', 'seats', 'transmission', 'fuelType']
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: availableCars.length,
+      data: availableCars
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to retrieve available cars",
+      error: error.message
+    });
+  }
+};
+
+// Get rental by ID for the current user
 export const getRentalById = async (req, res) => {
   try {
     const { id } = req.params;
-    const rental = await Rental.findByPk(id, {
+    const userId = req.user.id;
+    
+    const rental = await Rental.findOne({
+      where: { 
+        id,
+        userId 
+      },
       include: [
-        { model: Car, as: "car" },
-        { model: Customer, as: "customer" }
+        { 
+          model: Car, 
+          as: "car",
+          attributes: ['id', 'make', 'model', 'year', 'image', 'type']
+        },
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'name', 'email']
+        }
       ]
     });
     
     if (!rental) {
       return res.status(404).json({
         success: false,
-        message: `Rental with ID ${id} not found`
+        message: `Rental with ID ${id} not found or you don't have permission to view it`
       });
     }
 

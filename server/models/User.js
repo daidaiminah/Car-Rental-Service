@@ -20,6 +20,24 @@ export default (sequelize, DataTypes) => {
           type: DataTypes.STRING,
           allowNull: false,
         },
+        role: {
+          type: DataTypes.ENUM('customer', 'owner', 'admin'),
+          allowNull: false,
+          defaultValue: 'customer',
+        },
+        phone: {
+          type: DataTypes.STRING,
+        },
+        address: {
+          type: DataTypes.TEXT,
+        },
+        profileImage: {
+          type: DataTypes.STRING,
+        },
+        isVerified: {
+          type: DataTypes.BOOLEAN,
+          defaultValue: false,
+        },
       },
       {
         timestamps: true,

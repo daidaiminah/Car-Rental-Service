@@ -27,6 +27,35 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
       },
+      type: {
+        type: DataTypes.ENUM('sedan', 'suv', 'truck', 'van', 'sports', 'luxury', 'electric'),
+        allowNull: false,
+      },
+      transmission: {
+        type: DataTypes.ENUM('automatic', 'manual'),
+        allowNull: false,
+      },
+      fuelType: {
+        type: DataTypes.ENUM('gasoline', 'diesel', 'electric', 'hybrid'),
+        allowNull: false,
+      },
+      seats: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+      description: {
+        type: DataTypes.TEXT,
+      },
+      imageUrl: {
+        type: DataTypes.STRING,
+      },
+      location: {
+        type: DataTypes.STRING,
+      },
+      features: {
+        type: DataTypes.ARRAY(DataTypes.STRING),
+        defaultValue: [],
+      },
     },
     {
       timestamps: true,
