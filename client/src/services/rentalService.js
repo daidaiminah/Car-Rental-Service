@@ -87,6 +87,17 @@ const rentalService = {
       console.error(`Error fetching rentals for car ${carId}:`, error);
       throw error;
     }
+  },
+  
+  // Get rentals by owner ID
+  getRentalsByOwnerId: async () => {
+    try {
+      const response = await api.get('/rentals/owner-rentals');
+      return response.data?.data || [];
+    } catch (error) {
+      console.error('Error fetching owner rentals:', error);
+      throw error;
+    }
   }
 };
 

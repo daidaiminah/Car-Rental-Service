@@ -159,7 +159,7 @@ const Header = ({ onMenuClick }) => {
               {/* Logo */}
               <Link to={isAdminRoute ? '/admin' : '/'} className="ml-2 lg:ml-0">
                 <h1 className="text-xl font-bold text-primary whitespace-nowrap">
-                  Car Rental System
+                  Whip In Time
                 </h1>
               </Link>
             </div>
@@ -262,12 +262,14 @@ const Header = ({ onMenuClick }) => {
               >
                 <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white">
                   <span className="font-medium">
-                    {user ? user.name.charAt(0).toUpperCase() : 'U'}
+                    {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
                   </span>
                 </div>
-                <span className="hidden md:inline text-sm font-medium text-gray-700">
-                  {user ? user.name : 'Guest'}
-                </span>
+                {isAdminRoute && user ? (
+                  <span className="hidden md:inline text-sm font-medium text-gray-700">
+                    {user.name}
+                  </span>
+                ) : null}
                 <svg
                   className={`h-4 w-4 text-gray-500 transition-transform ${isProfileOpen ? 'transform rotate-180' : ''}`}
                   fill="none"
@@ -329,10 +331,7 @@ const Header = ({ onMenuClick }) => {
         </div>
 
         {/* Mobile menu content */}
-        <div className="lg:hidden
-          ${isSearchOpen ? 'block' : 'hidden'}
-          px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-gray-50"
-        >
+        <div className={`lg:hidden ${isSearchOpen ? 'block' : 'hidden'} px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-gray-50`}>
           {isSearchOpen && (
             <div className="mb-3">
               <div className="relative">
@@ -359,7 +358,7 @@ const Header = ({ onMenuClick }) => {
               </div>
             </div>
           )}
-          </div> 
+          </div>
         </div>
       </header>
 

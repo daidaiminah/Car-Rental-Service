@@ -42,7 +42,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           {/* Company info */}
           <div className="space-y-4">
-            <h3 className="text-white font-bold text-lg">Car Rental System</h3>
+            <h3 className="text-white font-bold text-lg">Whip In Time</h3>
             <p className="leading-relaxed">
               Your trusted partner for reliable and affordable car rental services.
               We offer a wide range of vehicles to suit your needs.
@@ -111,7 +111,7 @@ const Footer = () => {
                     d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                   />
                 </svg>
-                <span>123 Car Street, Auto City, 10001</span>
+                <span>ELWA Rehab, Monrovia, Liberia</span>
               </div>
               <div className="flex items-center">
                 <svg
@@ -128,7 +128,7 @@ const Footer = () => {
                   />
                 </svg>
                 <a href="tel:+1234567890" className="hover:text-white transition-colors">
-                  +1 (234) 567-890
+                  +231 (881) 617698 
                 </a>
               </div>
               <div className="flex items-center">
@@ -149,7 +149,7 @@ const Footer = () => {
                   href="mailto:info@carrental.com"
                   className="hover:text-white transition-colors"
                 >
-                  info@carrental.com
+                  info@whipintime.com
                 </a>
               </div>
             </address>
@@ -187,18 +187,33 @@ const Footer = () => {
         {/* Copyright and legal */}
         <div className="border-t border-gray-800 pt-6 mt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-500 text-sm mb-4 md:mb-0">
-            &copy; {currentYear} Car Rental System. All rights reserved.
+            &copy; {currentYear} Whip In Time. All rights reserved.
           </p>
           <div className="flex flex-wrap justify-center space-x-4">
-            {footerLinks.map((link) => (
-              <Link
-                key={link.to}
-                to={link.to}
-                className="text-gray-500 hover:text-white text-sm transition-colors"
-              >
-                {link.label}
-              </Link>
-            ))}
+            <Link
+              to='/privacy-policy'
+              className="text-gray-500 hover:text-white text-sm transition-colors"
+            >
+              Privacy Policy
+            </Link>
+            <Link
+              to='/terms-of-service'
+              className="text-gray-500 hover:text-white text-sm transition-colors"
+            >
+              Terms of Service
+            </Link>
+            <Link
+              to='/support-team'
+              className="text-gray-500 hover:text-white text-sm transition-colors"
+            >
+              Support Team
+            </Link>
+            <Link
+              to='/safety'
+              className="text-gray-500 hover:text-white text-sm transition-colors"
+            >
+              Safety
+            </Link>
           </div>
         </div>
       </div>

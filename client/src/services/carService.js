@@ -1,26 +1,58 @@
 import api from './api.js';
 
 const carService = {
-  // Get all cars
-  getAllCars: async () => {
+  // Get all cars with optional filters
+  getAllCars: async (filters = {}) => {
     try {
-      console.log('Fetching cars from API...');
-      const response = await api.get('/cars');
-      console.log('Cars API Response:', response);
+      console.log('Fetching cars from API with filters:', filters);
+      const { type, minPrice, maxPrice, search, limit } = filters;
+      
+      const params = new URLSearchParams();
+      if (type) params.append('type', type);
+      if (minPrice) params.append('minPrice', minPrice);
+      if (maxPrice) params.append('maxPrice', maxPrice);
+      if (search) params.append('search', search);
+      if (limit) params.append('limit', limit);
+      
+      const response = await api.get(`/cars?${params.toString()}`);
       
       // Ensure we have valid data
-      if (!response) {
-        console.error('No response received from server');
+      if (!response || !response.data) {
+        console.error('Invalid response format from server');
         return [];
       }
       
-      // Return the data array or an empty array if invalid
-      return Array.isArray(response.data) ? response.data : [];
+      // Transform the data to match the expected format
+      const cars = Array.isArray(response.data) 
+        ? response.data 
+        : response.data.data || [];
+      
+      return cars.map(car => ({
+        id: car.id,
+        make: car.make,
+        model: car.model,
+        year: car.year,
+        pricePerDay: car.rentalPricePerDay,
+        type: car.type,
+        transmission: car.transmission,
+        seats: car.seats,
+        fuelType: car.fuelType,
+        description: car.description,
+        image: car.imageUrl,
+        rating: car.rating,
+        location: car.location,
+        available: car.isAvailable
+      }));
     } catch (error) {
       console.error('Error fetching cars:', error);
       // Return empty array instead of throwing to prevent unhandled promise rejections
       return [];
     }
+  },
+  
+  // Get featured cars (first 6 cars by default)
+  getFeaturedCars: async (limit = 6) => {
+    return carService.getAllCars({ limit });
   },
 
   // Get car by ID

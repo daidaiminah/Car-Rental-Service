@@ -25,16 +25,34 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (email, password, role = 'customer') => {
     try {
-      const response = await authLogin({ email, password });
-      const { token, ...userData } = response;
+      const response = await authLogin({ email, password, role });
+      
+      // Check if the response has a nested data structure
+      const userData = response.data ? response.data : response;
+      const token = userData.token;
       
       // Store token and user data
       setAuthToken(token);
       localStorage.setItem('user', JSON.stringify(userData));
       
       setUser(userData);
+      
+      console.log('User role after login:', userData.role);
+      
+      // Redirect based on user role
+      if (userData.role === 'admin') {
+        navigate('/admin');
+      } else if (userData.role === 'owner') {
+        navigate('/owner-dashboard');
+      } else if (userData.role === 'customer') {
+        navigate('/renter-dashboard');
+      } else {
+        // Default fallback
+        navigate('/renter-dashboard');
+      }
+      
       return { success: true };
     } catch (error) {
       console.error('Login failed:', error);
@@ -53,6 +71,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const hasRole = (role) => {
+    if (role === 'customer' && user?.role === 'renter') return true;
+    if (role === 'customer' && !user?.role) return true; // Default role is customer
     return user?.role === role;
   };
 
