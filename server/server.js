@@ -16,7 +16,7 @@ const app = express();
 
 // Enable CORS with specific options
 const corsOptions = {
-  origin: 'http://localhost:5000', // Your frontend URL
+  origin: ['http://localhost:5000', 'https://in-time-whip.onrender.com'], // Your frontend URL
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
