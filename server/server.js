@@ -81,7 +81,7 @@ const startServer = async () => {
     console.log('Database synchronized.');
     // In development, you might want to use { force: true } to reset the database
     // In production, use { alter: true } or just sync()
-    await db.sequelize.sync({ force: true });
+    await db.sequelize.sync({ force: false });
     console.log('Database synchronized');
     
     await testConnection();
