@@ -18,6 +18,7 @@ const generateToken = (id, role = 'customer') => {
 const loginUser = async (req, res) => {
   try {
     const { email, password, role = 'customer' } = req.body;
+    console.log('Login attempt:', { email, role });
 
     // Validate input
     if (!email || !password) {
@@ -26,22 +27,18 @@ const loginUser = async (req, res) => {
 
     // Find user by email
     const user = await db.User.findOne({ where: { email } });
+    console.log('User found:', user ? { id: user.id, role: user.role } : 'No user found');
 
     // Check if user exists and password is correct
     if (user && (await bcrypt.compare(password, user.password))) {
-      // Check if user has the requested role
-      if (role && user.role !== role) {
-        return res.status(403).json({ 
-          success: false,
-          message: `You don't have permission to access ${role} dashboard` 
-        });
-      }
-
-      // Generate JWT token with role
+      // Fix: Don't check role on login - allow users to access their dashboard based on their actual role
+      // Instead of blocking login, we'll return their actual role so frontend can redirect correctly
+      
+      // Generate JWT token with user's actual role
       const token = generateToken(user.id, user.role);
 
       // Return user data and token (exclude password)
-      res.json({
+      const responseData = {
         success: true,
         data: {
           id: user.id,
@@ -50,8 +47,12 @@ const loginUser = async (req, res) => {
           role: user.role || 'customer',
           token
         }
-      });
+      };
+      
+      console.log('Login successful:', { userId: user.id, role: user.role });
+      res.json(responseData);
     } else {
+      console.log('Login failed: Invalid credentials');
       res.status(401).json({ message: 'Invalid email or password' });
     }
   } catch (error) {
@@ -80,14 +81,15 @@ const loginAdmin = async (req, res) => {
 
     // Check if admin exists and password is correct
     if (admin && (await bcrypt.compare(password, admin.password))) {
-      // Generate JWT token with admin flag
-      const token = generateToken(admin.id, true);
+      // Generate JWT token with admin role
+      const token = generateToken(admin.id, 'admin');
 
       // Return admin data and token (exclude password)
       res.json({
         id: admin.id,
         name: admin.name,
         email: admin.email,
+        role: 'admin',
         isAdmin: true,
         token
       });

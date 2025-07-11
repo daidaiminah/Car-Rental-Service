@@ -9,6 +9,8 @@ import rentalRoutes from "./routers/rentalRoutes.js";
 import cors from 'cors';
 import { createApiUser } from "./utils/momo.js";
 import { generateApiKey } from "./utils/momo.js";
+import { testConnection } from "./config/db.js";
+import { getAccessToken } from "./utils/momo.js";
 
 const app = express();
 
@@ -46,6 +48,15 @@ app.get("/generateApiKey", (req, res) => {
   console.log(apiKey)
 });
 
+app.get("/getAccessToken", (req, res) => {
+  const accessToken = getAccessToken();
+  res.json({
+      message: "Access token retrieved successfully",
+      accessToken,
+  })
+  console.log(accessToken)
+})
+
 // API Routes
 app.use("/api/auth", authRoute);
 app.use("/api/cars", carRoute);
@@ -70,9 +81,10 @@ const startServer = async () => {
     console.log('Database synchronized.');
     // In development, you might want to use { force: true } to reset the database
     // In production, use { alter: true } or just sync()
-    await db.sequelize.sync({ force: false });
+    await db.sequelize.sync({ force: true });
     console.log('Database synchronized');
     
+    await testConnection();
     // Start the server
     app.listen(serverPort, () => {
       console.log(`Server is running on port ${serverPort}`);

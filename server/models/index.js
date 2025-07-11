@@ -1,27 +1,15 @@
+
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { Sequelize, DataTypes } from 'sequelize';
-import process from 'process';
-import configFile from '../config/config.json' assert { type: 'json' };
+import { sequelize } from '../config/db.js'; // ✅ Correct named import
 
-// __dirname workaround for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 const basename = path.basename(__filename);
-const env = process.env.NODE_ENV || 'development';
-const config = configFile[env];
 
 const db = {};
-
-// Initialize Sequelize instance
-let sequelize;
-if (config.use_env_variable) {
-  sequelize = new Sequelize(process.env[config.use_env_variable], config);
-} else {
-  sequelize = new Sequelize(config.database, config.username, config.password, config);
-}
 
 // Dynamically import and initialize all models
 const files = fs
@@ -52,14 +40,13 @@ for (const file of files) {
   }
 }
 
-// Set up model associations, if defined
+// Set up model associations
 Object.keys(db).forEach(modelName => {
   if (db[modelName].associate) {
     db[modelName].associate(db);
   }
 });
 
-// Attach Sequelize and instance to db object
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 

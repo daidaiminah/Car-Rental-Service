@@ -5,7 +5,8 @@ import {
   getMyRentals,
   getRentalById,
   getAvailableCars,
-  deleteRental
+  deleteRental,
+  getOwnerRentals
 } from '../controllers/rentalController.js';
 
 const router = express.Router();
@@ -18,6 +19,9 @@ router.post('/', createRental);
 
 // Get current user's rentals
 router.get('/my-rentals', getMyRentals);
+
+// Get rentals for cars owned by the current user
+router.get('/owner-rentals', getOwnerRentals);
 
 // Get available cars for a date range
 router.get('/available-cars', getAvailableCars);

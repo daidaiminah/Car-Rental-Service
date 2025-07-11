@@ -291,6 +291,70 @@ export const getRentalById = async (req, res) => {
 };
 
 // Delete rental (cancel)
+// Get rentals for cars owned by the current user
+export const getOwnerRentals = async (req, res) => {
+  try {
+    const ownerId = req.user.id;
+    
+    // First, get all cars owned by this user
+    const ownerCars = await Car.findAll({
+      where: { ownerId }
+    });
+    
+    if (!ownerCars || ownerCars.length === 0) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        data: []
+      });
+    }
+    
+    // Get the car IDs
+    const carIds = ownerCars.map(car => car.id);
+    
+    // Find all rentals for these cars
+    const rentals = await Rental.findAll({
+      where: {
+        carId: {
+          [Op.in]: carIds
+        }
+      },
+      include: [
+        { 
+          model: Car, 
+          as: "car",
+          attributes: ['id', 'make', 'model', 'year', 'image', 'type', 'ownerId']
+        },
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'name', 'email'] // Only include non-sensitive user information
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+    
+    // Double-check that all returned rentals are for cars owned by this user
+    // This is a secondary security measure
+    const validRentals = rentals.filter(rental => 
+      rental.car && rental.car.ownerId === ownerId
+    );
+    
+    return res.status(200).json({
+      success: true,
+      count: validRentals.length,
+      data: validRentals
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to retrieve rentals for your cars",
+      error: error.message
+    });
+  }
+};
+
 export const deleteRental = async (req, res) => {
   try {
     const { id } = req.params;

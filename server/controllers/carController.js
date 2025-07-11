@@ -5,13 +5,26 @@ const Car = db.Car;
 // Create a new car
 export const createCar = async (req, res) => {
   try {
-    const { make, model, year, rentalPricePerDay } = req.body;
+    const {
+      make,
+      model,
+      year,
+      rentalPricePerDay,
+      type,
+      transmission,
+      seats,
+      fuelType,
+      description,
+      imageUrl,
+      rating,
+      location
+    } = req.body;
     
     // Validate required fields
-    if (!make || !model || !year || !rentalPricePerDay) {
+    if (!make || !model || !year || !rentalPricePerDay || !type || !transmission || !seats || !fuelType) {
       return res.status(400).json({ 
         success: false, 
-        message: "Make, model, year, and rental price are required fields" 
+        message: "Make, model, year, rental price, type, transmission, seats, and fuel type are required fields" 
       });
     }
 
@@ -21,7 +34,15 @@ export const createCar = async (req, res) => {
       model,
       year,
       rentalPricePerDay,
-      isAvailable: true
+      isAvailable: true,
+      type,
+      transmission,
+      seats,
+      fuelType,
+      description: description || 'This is a well-maintained vehicle in excellent condition, ready for your next adventure.',
+      imageUrl,
+      rating: rating || 4.5,
+      location: location || 'Not specified'
     });
 
     return res.status(201).json({
@@ -42,7 +63,31 @@ export const createCar = async (req, res) => {
 // Get all cars
 export const getAllCars = async (req, res) => {
   try {
-    const cars = await Car.findAll();
+    const { type, minPrice, maxPrice, search, limit = 10 } = req.query;
+    
+    const whereClause = {};
+    
+    // Add filters if provided
+    if (type) whereClause.type = type;
+    if (minPrice) whereClause.rentalPricePerDay = { [db.Sequelize.Op.gte]: parseFloat(minPrice) };
+    if (maxPrice) {
+      whereClause.rentalPricePerDay = {
+        ...whereClause.rentalPricePerDay,
+        [db.Sequelize.Op.lte]: parseFloat(maxPrice)
+      };
+    }
+    if (search) {
+      whereClause[db.Sequelize.Op.or] = [
+        { make: { [db.Sequelize.Op.iLike]: `%${search}%` } },
+        { model: { [db.Sequelize.Op.iLike]: `%${search}%` } }
+      ];
+    }
+    
+    const cars = await Car.findAll({
+      where: whereClause,
+      limit: parseInt(limit, 10),
+      order: [['id', 'DESC']] // Changed from 'createdAt' to 'id' since createdAt might not exist
+    });
     
     return res.status(200).json({
       success: true,

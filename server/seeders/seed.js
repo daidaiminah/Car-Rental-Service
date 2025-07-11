@@ -59,35 +59,75 @@ const seedDatabase = async () => {
         model: 'Camry',
         year: 2022,
         rentalPricePerDay: 45.99,
-        isAvailable: true
+        isAvailable: true,
+        type: 'sedan',
+        transmission: 'automatic',
+        fuelType: 'gasoline',
+        seats: 5,
+        description: 'Comfortable and reliable sedan with great fuel efficiency',
+        imageUrl: '/images/camry.jpg',
+        location: 'Monrovia',
+        features: ['Bluetooth', 'Backup Camera', 'Keyless Entry']
       },
       {
         make: 'Honda',
         model: 'Civic',
         year: 2023,
         rentalPricePerDay: 39.99,
-        isAvailable: true
+        isAvailable: true,
+        type: 'sedan',
+        transmission: 'automatic',
+        fuelType: 'gasoline',
+        seats: 5,
+        description: 'Popular compact car with excellent handling',
+        imageUrl: '/images/civic.jpg',
+        location: 'Monrovia',
+        features: ['Apple CarPlay', 'Lane Assist', 'Cruise Control']
       },
       {
         make: 'Ford',
         model: 'Mustang',
         year: 2023,
         rentalPricePerDay: 89.99,
-        isAvailable: true
+        isAvailable: true,
+        type: 'sports',
+        transmission: 'manual',
+        fuelType: 'gasoline',
+        seats: 4,
+        description: 'Classic American muscle car with powerful performance',
+        imageUrl: '/images/mustang.jpg',
+        location: 'Monrovia',
+        features: ['Leather Seats', 'Premium Sound', 'Sport Mode']
       },
       {
         make: 'Tesla',
         model: 'Model 3',
         year: 2023,
         rentalPricePerDay: 99.99,
-        isAvailable: true
+        isAvailable: true,
+        type: 'electric',
+        transmission: 'automatic',
+        fuelType: 'electric',
+        seats: 5,
+        description: 'Fully electric vehicle with autopilot features',
+        imageUrl: '/images/tesla.jpg',
+        location: 'Monrovia',
+        features: ['Autopilot', 'Premium Audio', 'Glass Roof']
       },
       {
         make: 'BMW',
         model: 'X5',
         year: 2022,
         rentalPricePerDay: 109.99,
-        isAvailable: true
+        isAvailable: true,
+        type: 'suv',
+        transmission: 'automatic',
+        fuelType: 'diesel',
+        seats: 7,
+        description: 'Luxury SUV with premium features and ample space',
+        imageUrl: '/images/x5.jpg',
+        location: 'Monrovia',
+        features: ['Heated Seats', 'Navigation', 'Panoramic Sunroof']
       }
     ];
 
@@ -107,7 +147,11 @@ const seedDatabase = async () => {
         endDate: nextWeek,
         totalCost: 300.00,
         status: 'confirmed',
-        paymentStatus: 'paid'
+        paymentStatus: 'paid',
+        totalDays: 7,
+        dailyRate: createdCars[0].rentalPricePerDay,
+        paymentMethod: 'credit_card',
+        paymentDate: today
       },
       {
         userId: users[1].id,
@@ -116,7 +160,11 @@ const seedDatabase = async () => {
         endDate: nextWeek,
         totalCost: 350.00,
         status: 'confirmed',
-        paymentStatus: 'paid'
+        paymentStatus: 'paid',
+        totalDays: 7,
+        dailyRate: createdCars[1].rentalPricePerDay,
+        paymentMethod: 'mobile_money',
+        paymentDate: today
       }
     ];
 

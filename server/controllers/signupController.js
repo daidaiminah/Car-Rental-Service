@@ -6,7 +6,7 @@ export const signupController = async (req, res) => {
     try {
         console.log('Signup request received:', { body: req.body });
         
-        const { name, email, password } = req.body;
+        const { name, email, password, role } = req.body;
 
         // Validate required fields
         if (!name || !email || !password) {
@@ -51,6 +51,7 @@ export const signupController = async (req, res) => {
             name,
             email,
             password: hashedPassword,
+            role: role || 'customer', // Use provided role or default to customer
             isAdmin: false // Default to regular user
         });
 
@@ -58,7 +59,7 @@ export const signupController = async (req, res) => {
 
         // Generate token
         const token = jwt.sign(
-            { id: user.id, isAdmin: user.isAdmin },
+            { id: user.id, role: user.role, isAdmin: user.isAdmin },
             process.env.JWT_SECRET || 'your_jwt_secret_key',
             { expiresIn: '30d' }
         );
@@ -68,6 +69,7 @@ export const signupController = async (req, res) => {
             id: user.id,
             name: user.name,
             email: user.email,
+            role: user.role,
             isAdmin: user.isAdmin,
             token
         });
