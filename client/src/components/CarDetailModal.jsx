@@ -7,7 +7,7 @@ import BookingFlow from './BookingFlow';
 const CarDetailModal = ({ car, onClose, onBook }) => {
   // Sample images for carousel (in a real app, these would come from the car object)
   const carImages = [
-    car.image || 'https://via.placeholder.com/800x500?text=No+Image',
+    car.imageUrl || 'https://via.placeholder.com/800x500?text=No+Image',
     'https://via.placeholder.com/800x500?text=Image+2',
     'https://via.placeholder.com/800x500?text=Image+3',
     'https://via.placeholder.com/800x500?text=Image+4'
@@ -77,7 +77,7 @@ const CarDetailModal = ({ car, onClose, onBook }) => {
     return (
       <div className="relative w-full h-96 bg-light-gray overflow-hidden rounded-lg mb-6">
         <img 
-          src={carImages[currentImageIndex]} 
+          src={car.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image'} 
           alt={`${car.make} ${car.model}`}
           className="w-full h-full object-cover"
         />
@@ -123,7 +123,7 @@ const CarDetailModal = ({ car, onClose, onBook }) => {
             <p className="text-secondary-light">{car.location}</p>
           </div>
           <div className="text-right">
-            <p className="text-2xl font-bold text-primary">${car.pricePerDay}<span className="text-sm font-normal text-secondary-light">/day</span></p>
+            <p className="text-2xl font-bold text-primary">${car.rentalPricePerDay}<span className="text-sm font-normal text-secondary-light">/day</span></p>
           </div>
         </div>
         
@@ -238,7 +238,7 @@ const CarDetailModal = ({ car, onClose, onBook }) => {
     return (
       <div className="sticky top-4 bg-light p-6 rounded-lg shadow-lg border border-light-dark">
         <div className="mb-4">
-          <p className="text-2xl font-bold mb-1 text-primary">${car.pricePerDay}<span className="text-sm font-normal text-secondary-light">/day</span></p>
+          <p className="text-2xl font-bold mb-1 text-primary">${car.rentalPricePerDay}<span className="text-sm font-normal text-secondary-light">/day</span></p>
           <div className="flex items-center">
             <FiStar className="text-primary mr-1" />
             <span className="text-secondary">{host.rating}</span>
@@ -260,16 +260,16 @@ const CarDetailModal = ({ car, onClose, onBook }) => {
         
         <div className="mt-6 pt-6 border-t border-light-dark">
           <div className="flex justify-between mb-2 text-secondary">
-            <span>${car.pricePerDay} x 3 days</span>
-            <span>${car.pricePerDay * 3}</span>
+            <span>${car.rentalPricePerDay} x 3 days</span>
+            <span>${car.rentalPricePerDay * 3}</span>
           </div>
           <div className="flex justify-between mb-2 text-secondary">
             <span>Service fee</span>
-            <span>${Math.round(car.pricePerDay * 0.1 * 3)}</span>
+            <span>${Math.round(car.rentalPricePerDay * 0.1 * 3)}</span>
           </div>
           <div className="flex justify-between font-bold pt-4 border-t border-light-dark mt-4 text-secondary-dark">
             <span>Total</span>
-            <span>${Math.round(car.pricePerDay * 3 + car.pricePerDay * 0.1 * 3)}</span>
+            <span>${Math.round(car.rentalPricePerDay * 3 + car.rentalPricePerDay * 0.1 * 3)}</span>
           </div>
         </div>
       </div>

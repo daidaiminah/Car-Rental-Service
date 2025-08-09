@@ -1,57 +1,54 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import carService from '../services/carService.js';
-import rentalService from '../services/rentalService.js';
+import { toast } from 'react-toastify';
+import { 
+  useGetCarByIdQuery,
+  useAddCarMutation,
+  useUpdateCarMutation,
+  useDeleteCarMutation 
+} from '../store/features/cars/carsApiSlice';
+import { useGetRentalsByCarIdQuery } from '../store/features/rentals/rentalsApiSlice';
 
 const CarDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [car, setCar] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [carRentals, setCarRentals] = useState([]);
-
-  useEffect(() => {
-    const fetchCarData = async () => {
-      try {
-        setLoading(true);
-        
-        if (id === 'new') {
-          setCar({
-            make: '',
-            model: '',
-            year: new Date().getFullYear(),
-            color: '',
-            licensePlate: '',
-            vin: '',
-            mileage: 0,
-            dailyRate: '',
-            fuelType: 'Gasoline',
-            transmission: 'Automatic',
-            status: 'Available',
-            features: []
-          });
-        } else {
-          // Fetch car data
-          const carData = await carService.getCarById(id);
-          setCar(carData);
-          
-          // Fetch car rentals
-          const rentalsData = await rentalService.getRentalsByCarId(id);
-          setCarRentals(rentalsData || []);
-        }
-      } catch (err) {
-        console.error('Error fetching car data:', err);
-        setError('Failed to load car data');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchCarData();
-  }, [id]);
-
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Use RTK Query hooks to fetch data
+  const { 
+    data: car,
+    isLoading: isLoadingCar,
+    isError: isCarError,
+    error: carError
+  } = useGetCarByIdQuery(id, { 
+    // Skip query if we're on the 'new' page
+    skip: id === 'new' 
+  });
+  
+  // Fetch rentals for this car
+  const {
+    data: carRentals = [],
+    isLoading: isLoadingRentals
+  } = useGetRentalsByCarIdQuery(id, {
+    // Skip query if we're on the 'new' page
+    skip: id === 'new'
+  });
+  
+  // RTK Query mutation hooks
+  const [addCar] = useAddCarMutation();
+  const [updateCar] = useUpdateCarMutation();
+  const [deleteCar] = useDeleteCarMutation();
+  
+  // Show error toast if API request fails
+  useEffect(() => {
+    if (isCarError) {
+      console.error('Error fetching car:', carError);
+      setError(carError?.data?.message || 'Failed to load car data');
+    }
+  }, [isCarError, carError]);
+
+
   
   // Form state for new/edit car
   const [formData, setFormData] = useState({
@@ -70,10 +67,12 @@ const CarDetails = () => {
         model: car.model || '',
         year: car.year || new Date().getFullYear(),
         rentalPricePerDay: car.rentalPricePerDay || '',
-        isAvailable: car.isAvailable !== undefined ? car.isAvailable : true
+        isAvailable: car.isAvailable !== undefined ? car.isAvailable : true,
+        fuelType: car.fuelType || 'Gasoline',
+        transmission: car.transmission || 'Automatic'
       });
     }
-  }, [car]);
+  }, [car, id]);
   
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -95,16 +94,18 @@ const CarDetails = () => {
       };
       
       if (id === 'new') {
-        await carService.createCar(carData);
+        // Use RTK Query mutation to create car
+        await addCar(carData).unwrap();
+        toast.success('Car created successfully');
         navigate('/cars');
       } else {
-        await carService.updateCar(id, carData);
-        // Refresh car data
-        const updatedCar = await carService.getCarById(id);
-        setCar(updatedCar);
+        // Use RTK Query mutation to update car
+        await updateCar({ id, ...carData }).unwrap();
+        toast.success('Car updated successfully');
       }
     } catch (err) {
       console.error('Error saving car:', err);
+      toast.error(err.data?.message || 'Failed to save car. Please try again.');
       setError('Failed to save car. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -114,10 +115,13 @@ const CarDetails = () => {
   const handleDelete = async () => {
     if (window.confirm('Are you sure you want to delete this car?')) {
       try {
-        await carService.deleteCar(id);
+        // Use RTK Query mutation to delete car
+        await deleteCar(id).unwrap();
+        toast.success('Car deleted successfully');
         navigate('/cars');
       } catch (err) {
         console.error('Failed to delete car:', err);
+        toast.error(err.data?.message || 'Failed to delete car. Please try again.');
         setError('Failed to delete car. Please try again.');
       }
     }
@@ -136,6 +140,25 @@ const CarDetails = () => {
       </div>
     );
   }
+  
+  // Create a default car object for new car form
+  const defaultCar = {
+    make: '',
+    model: '',
+    year: new Date().getFullYear(),
+    color: '',
+    licensePlate: '',
+    vin: '',
+    mileage: 0,
+    dailyRate: '',
+    fuelType: 'Gasoline',
+    transmission: 'Automatic',
+    status: 'Available',
+    features: []
+  };
+
+  // Determine if we're loading
+  const loading = id !== 'new' && (isLoadingCar || isLoadingRentals);
   
   if (loading) {
     return (

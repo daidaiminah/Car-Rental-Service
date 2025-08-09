@@ -1,6 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './store/authContext.jsx';
+import { HelmetProvider } from 'react-helmet-async';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
 import Layout from './components/Layout';
 import AdminLayout from './components/AdminLayout';
 import Home from './pages/Home';
@@ -16,6 +20,7 @@ import RentalDetails from './pages/RentalDetails';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import NotFound from './pages/NotFound';
+import ScrollToTop from './components/ScrollToTop';
 
 // Dashboard pages
 import MyCars from './pages/MyCars';
@@ -24,17 +29,24 @@ import BrowseCars from './pages/BrowseCars';
 import MyBookings from './pages/MyBookings';
 import Profile from './pages/Profile';
 import AddCar from './pages/AddCar';
+import About from './pages/About';
+import Contact from './pages/Contact';
+import TermsOfService from './pages/TermsOfService';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import FAQ from './pages/FAQ';
+import SocialMedia from './pages/SocialMedia';
+import SafetySupport from './pages/SafetySupport';
 
 // Protected route component
 const ProtectedRoute = ({ children, requiredRole }) => {
-  const { isAuthenticated, hasRole, loading, user } = useAuth();
+  const { isAuthenticated, hasRole, loading } = useAuth();
   const location = useLocation();
   
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
-  if (!isAuthenticated()) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
@@ -45,164 +57,114 @@ const ProtectedRoute = ({ children, requiredRole }) => {
   return children;
 };
 
-// Role-based redirect component
+/**
+ * Role-based redirect component
+ * Redirects users to their respective dashboards based on their role
+ */
 const RoleBasedRedirect = () => {
   const { user } = useAuth();
   
   if (user?.role === 'admin') {
     return <Navigate to="/admin" replace />;
   } else if (user?.role === 'owner') {
-    return <Navigate to="/owner-dashboard" replace />;
+    return <Navigate to="/owner" replace />;
   } else {
-    return <Navigate to="/renter-dashboard" replace />;
+    // Default to renter dashboard for customers and any other roles
+    return <Navigate to="/renter" replace />;
   }
+};
+
+// Component to handle scroll to top on route change
+const ScrollToTopOnRouteChange = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
 };
 
 function AppContent() {
   return (
-    <Routes>
+    <>
+      <ToastContainer 
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
+      <ScrollToTopOnRouteChange />
+      <ScrollToTop />
+      <Routes>
       {/* Public routes */}
       <Route path="/" element={<Layout />}>
         <Route index element={<Home />} />
-        <Route path="about" element={<div>About Us - Public View</div>} />
-        <Route path="contact" element={<div>Contact Us - Public View</div>} />
+        <Route path="about" element={<About />} />
+        <Route path="contact" element={<Contact />} />
+        <Route path="terms" element={<TermsOfService />} />
+        <Route path="privacy" element={<PrivacyPolicy />} />
+        <Route path="faq" element={<FAQ />} />
+        <Route path="social" element={<SocialMedia />} />
+        <Route path="safety" element={<SafetySupport />} />
         <Route path="cars" element={<Cars />} />
         <Route path="cars/:id" element={<CarDetails />} />
       </Route>
-      
-      {/* Admin routes - separate from public routes */}
-      <Route path="/admin" element={<AdminLayout />}>
-        <Route 
-          index
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route 
-          path="customers" 
-          element={
-            <ProtectedRoute>
-              <Customers />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="customers/:id" 
-          element={
-            <ProtectedRoute>
-              <CustomerDetails />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="cars" 
-          element={
-            <ProtectedRoute>
-              <Navigate to="/admin" replace />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="cars/:id" 
-          element={
-            <ProtectedRoute>
-              <CarDetails />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="rentals" 
-          element={
-            <ProtectedRoute>
-              <Rentals />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="rentals/:id" 
-          element={
-            <ProtectedRoute>
-              <RentalDetails />
-            </ProtectedRoute>
-          } 
-        />
+
+      {/* ============================================
+          1. ADMIN DASHBOARD ROUTES (/admin/...)
+          ============================================ */}
+      <Route path="/admin" element={
+        <ProtectedRoute requiredRole="admin">
+          <AdminLayout />
+        </ProtectedRoute>
+      }>
+        <Route index element={<Dashboard />} />
+        <Route path="customers" element={<Customers />} />
+        <Route path="customers/:id" element={<CustomerDetails />} />
+        <Route path="cars" element={<Navigate to="/admin" replace />} />
+        <Route path="cars/:id" element={<CarDetails />} />
+        <Route path="rentals" element={<Rentals />} />
+        <Route path="rentals/:id" element={<RentalDetails />} />
       </Route>
 
-      {/* Role-specific dashboards */}
-      {/* Owner Dashboard Routes */}
-      <Route path="/owner-dashboard" element={
+      {/* ============================================
+          2. OWNER DASHBOARD ROUTES (/owner/...)
+          ============================================ */}
+      <Route path="/owner" element={
         <ProtectedRoute requiredRole="owner">
           <AdminLayout />
         </ProtectedRoute>
       }>
         <Route index element={<OwnerDashboard />} />
-        <Route path="my-cars" element={<MyCars />} />
-        <Route path="my-rentals" element={<MyRentals />} />
+        <Route path="dashboard" element={<OwnerDashboard />} />
+        <Route path="cars" element={<MyCars />} />
+        <Route path="add_cars" element={<AddCar />} />
+        <Route path="cars/:id" element={<CarDetails />} />
+        <Route path="rentals" element={<MyRentals />} />
+        <Route path="profile" element={<Profile />} />
       </Route>
-      
-      {/* Add Car Route */}
-      <Route path="/add-car" element={
-        <ProtectedRoute requiredRole="owner">
-          <AdminLayout />
-        </ProtectedRoute>
-      }>
-        <Route index element={<AddCar />} />
-      </Route>
-      
-      {/* Renter Dashboard Routes */}
-      <Route path="/renter-dashboard" element={
+
+      {/* ============================================
+          3. RENTER DASHBOARD ROUTES (/renter/...)
+          ============================================ */}
+      <Route path="/renter" element={
         <ProtectedRoute requiredRole="customer">
           <AdminLayout />
         </ProtectedRoute>
       }>
         <Route index element={<RenterDashboard />} />
-        <Route path="browse-cars" element={<BrowseCars />} />
-        <Route path="my-bookings" element={<MyBookings />} />
+        <Route path="browse" element={<BrowseCars />} />
+        <Route path="bookings" element={<MyBookings />} />
         <Route path="profile" element={<Profile />} />
       </Route>
       
-      {/* Standalone Dashboard Routes */}
-      <Route path="/browse-cars" element={
-        <ProtectedRoute requiredRole="customer">
-          <AdminLayout />
-        </ProtectedRoute>
-      }>
-        <Route index element={<BrowseCars />} />
-      </Route>
-      
-      <Route path="/my-bookings" element={
-        <ProtectedRoute requiredRole="customer">
-          <AdminLayout />
-        </ProtectedRoute>
-      }>
-        <Route index element={<MyBookings />} />
-      </Route>
-      
-      <Route path="/profile" element={
-        <ProtectedRoute>
-          <AdminLayout />
-        </ProtectedRoute>
-      }>
-        <Route index element={<Profile />} />
-      </Route>
-      
-      <Route path="/my-cars" element={
-        <ProtectedRoute requiredRole="owner">
-          <AdminLayout />
-        </ProtectedRoute>
-      }>
-        <Route index element={<MyCars />} />
-      </Route>
-      
-      <Route path="/my-rentals" element={
-        <ProtectedRoute requiredRole="owner">
-          <AdminLayout />
-        </ProtectedRoute>
-      }>
-        <Route index element={<MyRentals />} />
-      </Route>
       
       {/* Dashboard redirect based on role */}
       <Route path="/dashboard" element={
@@ -217,16 +179,21 @@ function AppContent() {
       
       {/* 404 - Keep at the end */}
       <Route path="*" element={<NotFound />} />
-    </Routes>
+      </Routes>
+    </>
   );
 }
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <HelmetProvider>
+      <AuthProvider>
+        <AppContent />
+        <ScrollToTop />
+      </AuthProvider>
+    </HelmetProvider>
   );
 }
 
 export default App;
+ 

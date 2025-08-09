@@ -1,14 +1,21 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
+import Title from '../components/Title';
+import { useSelector } from "react-redux";
 import { FiSearch, FiArrowUpRight, FiClock, FiCalendar, FiFilter } from "react-icons/fi";
 import { FaCar } from "react-icons/fa";
 import CarCard from "../components/CarCard";
 import CarDetailModal from "../components/CarDetailModal";
-import carService from "../services/carService";
-import rentalService from "../services/rentalService";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { selectCurrentUser } from "../store/features/auth/authSlice";
+import { 
+  useGetCarsQuery
+} from "../store/features/cars/carsApiSlice";
+import { 
+  useGetRentalsByRenterIdQuery,
+  useCreateRentalMutation 
+} from "../store/features/rentals/rentalsApiSlice";
 
 // StatCard component for displaying statistics with icons and trends
 const StatCard = ({ title, value, icon: Icon, color, loading = false }) => {
@@ -26,23 +33,57 @@ const StatCard = ({ title, value, icon: Icon, color, loading = false }) => {
 };
 
 const RenterDashboard = () => {
-  const { user } = useAuth();
-  const [cars, setCars] = useState([]);
-  const [rentals, setRentals] = useState([]);
-  const [stats, setStats] = useState({
-    activeRentals: 0,
-    pastRentals: 0,
-    savedCars: 0,
-  });
-  const [loading, setLoading] = useState(true);
+  const user = useSelector(selectCurrentUser);
   const [selectedCar, setSelectedCar] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [filters, setFilters] = useState({
     type: '',
     minPrice: '',
     maxPrice: '',
-    search: ''
+    search: '',
+    status: 'available'
   });
+  const [activeFilters, setActiveFilters] = useState({
+    status: 'available'
+  });
+
+  // RTK Query hooks
+  const { 
+    data: cars = [], 
+    isLoading: carsLoading,
+    isError: carsError,
+    error: carsErrorData
+  } = useGetCarsQuery(activeFilters);
+
+  const { 
+    data: rentals = [],
+    isLoading: rentalsLoading,
+    isError: rentalsError,
+    error: rentalsErrorData
+  } = useGetRentalsByRenterIdQuery(user?.id, {
+    skip: !user?.id
+  });
+
+  const [createRental, { isLoading: isCreatingRental }] = useCreateRentalMutation();
+
+  // Show errors in console
+  if (carsError) {
+    console.error('Error fetching cars:', carsErrorData);
+    toast.error('Failed to load cars data');
+  }
+  
+  if (rentalsError) {
+    console.error('Error fetching rentals:', rentalsErrorData);
+    toast.error('Failed to load rental history');
+  }
+
+  // Calculate stats
+  const activeRentals = rentals.filter(rental => rental.status === 'active').length;
+  const pastRentals = rentals.filter(rental => rental.status === 'completed').length;
+  const savedCars = 0; // Placeholder for now
+
+  // Determine if any data is still loading
+  const loading = carsLoading || rentalsLoading;
 
   const handleBookCar = async (bookingData) => {
     try {
@@ -54,37 +95,13 @@ const RenterDashboard = () => {
         paymentDate: new Date().toISOString()
       };
       
-      // Create rental in backend
-      await rentalService.createRental(rentalData);
-      
-      // Refresh rentals data
-      fetchUserRentals();
+      // Create rental using RTK Query mutation
+      await createRental(rentalData).unwrap();
       
       return true;
     } catch (error) {
       console.error('Error booking car:', error);
       throw new Error('Failed to book car. Please try again.');
-    }
-  };
-
-  const fetchUserRentals = async () => {
-    try {
-      // Fetch user's rentals
-      const userRentals = await rentalService.getRentalsByCustomerId(user.id);
-      setRentals(userRentals || []);
-      
-      // Update stats
-      const activeRentals = userRentals.filter(rental => rental.status === 'active').length;
-      const pastRentals = userRentals.filter(rental => rental.status === 'completed').length;
-      
-      setStats(prev => ({
-        ...prev,
-        activeRentals,
-        pastRentals
-      }));
-    } catch (error) {
-      console.error('Error fetching user rentals:', error);
-      toast.error('Failed to load your rental history');
     }
   };
 
@@ -96,51 +113,18 @@ const RenterDashboard = () => {
     }));
   };
 
-  const applyFilters = async () => {
-    try {
-      setLoading(true);
-      const carsResponse = await carService.getAllCars(filters);
-      setCars(carsResponse || []);
-    } catch (error) {
-      console.error('Error applying filters:', error);
-      toast.error('Failed to filter cars');
-    } finally {
-      setLoading(false);
-    }
+  const applyFilters = () => {
+    // Update active filters to trigger RTK Query refetch
+    setActiveFilters({
+      ...filters,
+      // Ensure we always include the status filter
+      status: filters.status || 'available'
+    });
   };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        // Fetch available cars
-        const carsResponse = await carService.getAllCars({ status: 'available' });
-        setCars(carsResponse || []);
-        
-        // Fetch user's rentals
-        await fetchUserRentals();
-        
-        // Fetch saved cars count (placeholder for now)
-        const savedCars = 0;
-        
-        setStats(prev => ({
-          ...prev,
-          savedCars
-        }));
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-        toast.error("Failed to load dashboard data");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [user.id]);
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <Title title="Customer Dashboard" />
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Renter Dashboard</h1>
@@ -163,21 +147,21 @@ const RenterDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <StatCard
           title="Active Rentals"
-          value={stats.activeRentals}
+          value={activeRentals}
           icon={FiCalendar}
           color="green"
           loading={loading}
         />
         <StatCard
           title="Past Rentals"
-          value={stats.pastRentals}
+          value={pastRentals}
           icon={FiClock}
           color="blue"
           loading={loading}
         />
         <StatCard
           title="Saved Cars"
-          value={stats.savedCars}
+          value={savedCars}
           icon={FaCar}
           color="orange"
           loading={loading}
@@ -244,7 +228,7 @@ const RenterDashboard = () => {
       <div className="mb-8">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Available Cars</h2>
-          <Link to="/cars" className="text-primary flex items-center hover:underline">
+          <Link to="/renter/browse" className="text-primary flex items-center hover:underline">
             View All <FiArrowUpRight className="ml-1" />
           </Link>
         </div>

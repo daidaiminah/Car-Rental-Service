@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
+import Title from '../components/Title';
+import { useSelector } from "react-redux";
 import { FiPlus, FiArrowUpRight, FiDollarSign, FiCalendar, FiUser } from "react-icons/fi";
 import { FaCar } from "react-icons/fa";
-import carService from "../services/carService";
-import rentalService from "../services/rentalService";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { format } from "date-fns";
+import { useGetCarsByOwnerIdQuery } from "../store/features/cars/carsApiSlice";
+import { useGetRentalsByOwnerIdQuery } from "../store/features/rentals/rentalsApiSlice";
+import { selectCurrentUser } from "../store/features/auth/authSlice";
 
 // StatCard component for displaying statistics with icons and trends
 const StatCard = ({ title, value, icon: Icon, color, trend, change, loading = false }) => {
@@ -30,74 +32,84 @@ const StatCard = ({ title, value, icon: Icon, color, trend, change, loading = fa
 };
 
 const OwnerDashboard = () => {
-  const { user } = useAuth();
-  const [cars, setCars] = useState([]);
-  const [rentals, setRentals] = useState([]);
-  const [stats, setStats] = useState({
-    totalCars: 0,
-    activeRentals: 0,
-    totalEarnings: 0,
+  const user = useSelector(selectCurrentUser);
+  
+  // Use RTK Query hooks to fetch data
+  const { 
+    data: cars = [], 
+    isLoading: carsLoading,
+    isError: carsError,
+    error: carsErrorData
+  } = useGetCarsByOwnerIdQuery(user?.id, {
+    skip: !user?.id
   });
-  const [loading, setLoading] = useState(true);
-  const [loadingRentals, setLoadingRentals] = useState(true);
+  
+  const { 
+    data: rentals = [],
+    isLoading: rentalsLoading,
+    isError: rentalsError,
+    error: rentalsErrorData
+  } = useGetRentalsByOwnerIdQuery(user?.id, {
+    skip: !user?.id
+  });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!user || !user.id) {
-        console.error("No user ID available");
-        return;
-      }
-      
-      try {
-        setLoading(true);
-        // Fetch owner's cars
-        const carsResponse = await carService.getCars({ ownerId: user.id });
-        const ownerCars = Array.isArray(carsResponse.data) ? carsResponse.data : [];
-        setCars(ownerCars);
-        
-        // Fetch rentals for owner's cars
-        setLoadingRentals(true);
-        const rentalsResponse = await rentalService.getRentalsByOwnerId();
-        const ownerRentals = Array.isArray(rentalsResponse) ? rentalsResponse : [];
-        setRentals(ownerRentals);
-        
-        // Calculate stats
-        const totalCars = ownerCars.length;
-        const activeRentals = ownerRentals.filter(rental => 
-          rental.status === 'active' || rental.status === 'pending'
-        ).length;
-        
-        // Calculate total earnings from completed rentals
-        const totalEarnings = ownerRentals
-          .filter(rental => rental.status === 'completed')
-          .reduce((sum, rental) => sum + (rental.totalAmount || 0), 0);
-        
-        setStats({
-          totalCars,
-          activeRentals,
-          totalEarnings,
-        });
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-        toast.error("Failed to load dashboard data");
-      } finally {
-        setLoading(false);
-        setLoadingRentals(false);
-      }
-    };
+  // // Debug: Log the car object and image URL
+  // React.useEffect(() => {
+  //   console.log('Car data:', car);
+  //   console.log('Image URL:', car.imageUrl);
+  // }, [car]);
 
-    fetchData();
-  }, [user]);
+  // // Construct the image URL
+  // const getImageUrl = () => {
+  //   // If imageUrl is already a full URL, use it as is
+  //   if (car.imageUrl?.startsWith('http')) {
+  //     return car.imageUrl;
+  //   }
+  //   // If it's a relative path, prepend the API base URL
+  //   if (car.imageUrl?.startsWith('/')) {
+  //     return `http://localhost:3001${car.imageUrl}`;
+  //   }
+  //   // Fallback to placeholder
+  //   return 'https://via.placeholder.com/300x200?text=Car+Image';
+  // };
+
+  
+  // Show errors in console
+  if (carsError) {
+    console.error('Error fetching cars:', carsErrorData);
+    toast.error('Failed to load cars data');
+  }
+  
+  if (rentalsError) {
+    console.error('Error fetching rentals:', rentalsErrorData);
+    toast.error('Failed to load rentals data');
+  }
+  
+  // Calculate stats
+  const totalCars = cars.length;
+  const activeRentals = rentals.filter(rental => 
+    rental.status === 'active' || rental.status === 'pending'
+  ).length;
+  
+  // Calculate total earnings from completed rentals
+  const totalEarnings = rentals
+    .filter(rental => rental.status === 'completed')
+    .reduce((sum, rental) => sum + (rental.totalAmount || 0), 0);
+  
+  // Determine if any data is still loading
+  const loading = carsLoading;
+  const loadingRentals = rentalsLoading;
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <Title title="Car Owner Dashboard" />
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Car Owner Dashboard</h1>
           <p className="text-gray-600">Welcome back, {user?.name || 'Owner'}!</p>
         </div>
         <Link
-          to="/add-car"
+          to="/owner/add_cars"
           className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
         >
           <FiPlus className="-ml-1 mr-2 h-5 w-5" />
@@ -109,14 +121,14 @@ const OwnerDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <StatCard
           title="Total Cars"
-          value={stats.totalCars}
+          value={totalCars}
           icon={FaCar}
           color="blue"
           loading={loading}
         />
         <StatCard
           title="Active Rentals"
-          value={stats.activeRentals}
+          value={activeRentals}
           icon={FiCalendar}
           color="green"
           trend="up"
@@ -125,7 +137,7 @@ const OwnerDashboard = () => {
         />
         <StatCard
           title="Total Earnings"
-          value={`$${stats.totalEarnings}`}
+          value={`$${totalEarnings}`}
           icon={FiDollarSign}
           color="orange"
           trend="up"
@@ -139,7 +151,7 @@ const OwnerDashboard = () => {
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-medium text-gray-900">My Cars</h2>
           <Link
-            to="/my-cars"
+            to="owner/cars"
             className="text-sm font-medium text-orange-600 hover:text-orange-500 flex items-center"
           >
             View All
@@ -153,7 +165,7 @@ const OwnerDashboard = () => {
           <div className="text-center py-8">
             <p className="text-gray-500 mb-4">You haven't listed any cars yet</p>
             <Link
-              to="/add-car"
+              to="/owner/add_cars"
               className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700"
             >
               <FiPlus className="-ml-1 mr-2 h-5 w-5" />
@@ -165,7 +177,7 @@ const OwnerDashboard = () => {
             {cars.slice(0, 3).map((car) => (
               <div key={car.id} className="border rounded-lg overflow-hidden">
                 <img
-                  src={car.image || 'https://via.placeholder.com/300x200?text=Car+Image'}
+                  src={car.imageUrl || 'https://www.google.com/imgres?q=car%20suv&imgurl=https%3A%2F%2Fcas.volvocars.com%2Fimage%2Fdynamic%2FMY25_2417%2F536%2Fexterior-aligned-v1%2F47%2F62600%2FR7C000%2FR156%2FFN01%2FTC06%2F_%2F_%2FTP02%2FLR02%2F_%2FGR03%2FT102%2FTJ01%2FNP02%2FTM02%2F_%2F_%2F_%2FJB09%2FT21C%2FLF01%2F_%2F_%2FFH01%2F_%2F_%2F_%2F_%2F_%2Fdefault.png%3Fmarket%3Dus%26client%3Dpdps%26angle%3D7%26bg%3D00000000%26w%3D3840%26imdensity%3D1&imgrefurl=https%3A%2F%2Fwww.volvocars.com%2Fus%2Fcars%2Fsuv%2F&docid=HTQ0fUEUu6LS_M&tbnid=qzAWQ3mjlOhROM&vet=12ahUKEwjvop7Wl_qOAxWbQUEAHUU2CvAQM3oECGYQAA..i&w=3840&h=2161&hcb=2&ved=2ahUKEwjvop7Wl_qOAxWbQUEAHUU2CvAQM3oECGYQAA'}
                   alt={car.make + ' ' + car.model}
                   className="w-full h-48 object-cover"
                 />
@@ -173,7 +185,7 @@ const OwnerDashboard = () => {
                   <h3 className="font-medium text-gray-900">{car.make} {car.model}</h3>
                   <p className="text-gray-500 text-sm">{car.year} • {car.transmission}</p>
                   <div className="mt-4 flex justify-between items-center">
-                    <span className="font-bold text-orange-600">${car.dailyRate}/day</span>
+                    <span className="font-bold text-orange-600">${car.rentalPricePerDay}/day</span>
                     <span className={`px-2 py-1 rounded-full text-xs ${
                       car.status === 'available' 
                         ? 'bg-green-100 text-green-800' 

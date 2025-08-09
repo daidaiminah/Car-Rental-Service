@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiArrowLeft, FiCalendar } from 'react-icons/fi';
 import { toast } from 'react-toastify';
-import rentalService from '../services/rentalService';
+import { useCreateRentalMutation } from '../store/features/rentals/rentalsApiSlice';
 import { FaCreditCard, FaMobile } from 'react-icons/fa';
 
 const BookingFlow = ({ car, onClose, onComplete, userId }) => {
@@ -44,7 +44,7 @@ const BookingFlow = ({ car, onClose, onComplete, userId }) => {
 
   const calculateTotalPrice = () => {
     const days = calculateTotalDays();
-    return days * car.pricePerDay;
+    return days * car.rentalPricePerDay;
   };
 
   const validateDates = () => {
@@ -96,31 +96,50 @@ const BookingFlow = ({ car, onClose, onComplete, userId }) => {
       
       setIsSubmitting(true);
       
-      // Calculate total days and amount
-      const totalDays = calculateTotalDays();
-      const totalAmount = calculateTotalPrice();
-      
-      // Prepare booking data
-      const bookingPayload = {
-        ...bookingData,
-        totalDays,
-        totalAmount,
-        status: 'confirmed'
+      // Create rental data object
+      const rentalData = {
+        carId: bookingData.carId,
+        userId: bookingData.userId,
+        startDate: bookingData.startDate,
+        endDate: bookingData.endDate,
+        pickupAddress: bookingData.pickupAddress,
+        paymentMethod: bookingData.paymentMethod,
+        totalDays: calculateTotalDays(),
+        totalPrice: calculateTotalPrice(),
+        status: 'confirmed',
+        paymentDetails: {}
       };
+
+      // Add payment details if paying by card or mobile money
+      if (bookingData.paymentMethod === 'credit_card') {
+        rentalData.paymentDetails = {
+          cardNumber: bookingData.cardNumber,
+          cardExpiry: bookingData.cardExpiry,
+          cardCvv: bookingData.cardCvv
+        };
+      } else if (bookingData.paymentMethod === 'orange_money' || bookingData.paymentMethod === 'lonestar_money') {
+        rentalData.paymentDetails = {
+          mobileNumber: bookingData.mobileNumber
+        };
+      }
+
+      // Call the createRental mutation
+      const response = await createRental(rentalData).unwrap();
       
-      // Submit booking to API
-      const response = await rentalService.createRental(bookingPayload);
+      // Show success message
+      toast.success('Booking confirmed successfully!');
       
-      // Move to confirmation step
+      // Move to the confirmation step
       setCurrentStep(3);
       
-      // Call the onBookingComplete callback with the booking data
+      // Call the onComplete callback if provided
       if (onComplete) {
-        onComplete(response.data);
+        onComplete(response);
       }
+      
     } catch (error) {
       console.error('Error creating booking:', error);
-      toast.error('Failed to create booking. Please try again.');
+      toast.error(error.data?.message || 'Failed to create booking. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -404,7 +423,7 @@ const BookingFlow = ({ car, onClose, onComplete, userId }) => {
         <div className="border-t border-light-dark p-4">
           <div className="flex items-center">
             <img 
-              src={car.image || 'https://via.placeholder.com/60x60'} 
+              src={car.imageUrl || 'https://via.placeholder.com/60x60'} 
               alt={car.make} 
               className="w-12 h-12 object-cover rounded border border-light-dark"
             />

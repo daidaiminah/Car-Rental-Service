@@ -1,49 +1,46 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import carService from '../services/carService';
+import { useSelector } from 'react-redux';
 import { FaEdit, FaTrash, FaCar } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import { useGetCarsByOwnerIdQuery, useDeleteCarMutation } from '../store/features/cars/carsApiSlice';
+import { selectCurrentUser } from '../store/features/auth/authSlice';
 
 const MyCars = () => {
-  const { user } = useAuth();
-  const [cars, setCars] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const user = useSelector(selectCurrentUser);
+  
+  // Use RTK Query hook to fetch cars by owner ID
+  const { 
+    data: cars = [], 
+    isLoading, 
+    isError, 
+    error 
+  } = useGetCarsByOwnerIdQuery(user?.id, {
+    skip: !user?.id,
+  });
+  
+  // Show error in console if API request fails
+  if (isError) {
+    console.error('Error fetching cars:', error);
+    toast.error('Failed to load your cars. Please try again.');
+  }
 
-  useEffect(() => {
-    const fetchMyCars = async () => {
-      try {
-        setLoading(true);
-        // Assuming carService has a method to get cars by owner ID
-        const response = await carService.getCarsByOwnerId(user.id);
-        setCars(response.data);
-      } catch (error) {
-        console.error('Error fetching cars:', error);
-        toast.error('Failed to load your cars. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (user?.id) {
-      fetchMyCars();
-    }
-  }, [user]);
-
+  // Use RTK Query mutation hook for deleting cars
+  const [deleteCar, { isLoading: isDeleting }] = useDeleteCarMutation();
+  
   const handleDeleteCar = async (carId) => {
     if (window.confirm('Are you sure you want to delete this car?')) {
       try {
-        await carService.deleteCar(carId);
-        setCars(cars.filter(car => car.id !== carId));
+        await deleteCar(carId).unwrap();
         toast.success('Car deleted successfully');
       } catch (error) {
         console.error('Error deleting car:', error);
-        toast.error('Failed to delete car. Please try again.');
+        toast.error(error.data?.message || error.error || 'Failed to delete car. Please try again.');
       }
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>

@@ -1,35 +1,36 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import rentalService from '../services/rentalService';
+import React, { useState } from 'react';
+import { useSelector } from 'react-redux';
 import { format } from 'date-fns';
 import { FaCalendarAlt, FaCar, FaMapMarkerAlt, FaMoneyBillWave } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import { selectCurrentUser } from '../store/features/auth/authSlice';
+import { 
+  useGetRentalsByRenterIdQuery,
+  useUpdateRentalMutation 
+} from '../store/features/rentals/rentalsApiSlice';
 
 const MyBookings = () => {
-  const { user } = useAuth();
-  const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const user = useSelector(selectCurrentUser);
   const [filter, setFilter] = useState('all'); // all, upcoming, active, past
 
-  useEffect(() => {
-    const fetchMyBookings = async () => {
-      try {
-        setLoading(true);
-        // Assuming rentalService has a method to get rentals by customer ID
-        const response = await rentalService.getRentalsByCustomerId(user.id);
-        setBookings(response.data);
-      } catch (error) {
-        console.error('Error fetching bookings:', error);
-        toast.error('Failed to load your bookings. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Use RTK Query hook to fetch bookings
+  const { 
+    data: bookings = [], 
+    isLoading: loading,
+    isError,
+    error
+  } = useGetRentalsByRenterIdQuery(user?.id, {
+    skip: !user?.id
+  });
 
-    if (user?.id) {
-      fetchMyBookings();
-    }
-  }, [user]);
+  // Use RTK Query mutation to update rental status to cancelled
+  const [updateRental, { isLoading: isCancelling }] = useUpdateRentalMutation();
+  
+  // Show error if there's an issue fetching bookings
+  if (isError) {
+    console.error('Error fetching bookings:', error);
+    toast.error('Failed to load your bookings. Please try again.');
+  }
 
   const filteredBookings = bookings.filter(booking => {
     const now = new Date();
@@ -63,13 +64,10 @@ const MyBookings = () => {
   const handleCancelBooking = async (bookingId) => {
     if (window.confirm('Are you sure you want to cancel this booking?')) {
       try {
-        await rentalService.cancelRental(bookingId);
-        // Update the booking status in the UI
-        setBookings(bookings.map(booking => 
-          booking.id === bookingId 
-            ? { ...booking, status: 'cancelled' } 
-            : booking
-        ));
+        await updateRental({
+          id: bookingId,
+          status: 'cancelled'
+        }).unwrap();
         toast.success('Booking cancelled successfully');
       } catch (error) {
         console.error('Error cancelling booking:', error);

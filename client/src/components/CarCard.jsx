@@ -8,7 +8,7 @@ const CarCard = ({ car }) => {
     <div className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300">
       <div className="relative">
         <img 
-          src={car.image || 'https://via.placeholder.com/300x200?text=Car+Image'} 
+          src={car.imageUrl || car.image || 'https://via.placeholder.com/300x200?text=Car+Image'} 
           alt={`${car.make} ${car.model}`}
           className="w-full h-48 object-cover"
           onError={(e) => {
@@ -33,7 +33,7 @@ const CarCard = ({ car }) => {
             </div>
           </div>
           <div className="text-right">
-            <span className="font-bold text-lg">${car.pricePerDay || '--'}</span>
+            <span className="font-bold text-lg">${car.rentalPricePerDay ? `${car.rentalPricePerDay}` : '--'}</span>
             <span className="text-gray-500 text-sm block">per day</span>
           </div>
         </div>

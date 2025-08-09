@@ -1,8 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
-import rentalService from '../services/rentalService.js';
-import customerService from '../services/customerService.js';
-import carService from '../services/carService.js';
+import { toast } from 'react-toastify';
+import { 
+  useGetRentalByIdQuery,
+  useCreateRentalMutation,
+  useUpdateRentalMutation,
+  useDeleteRentalMutation
+} from '../store/features/rentals/rentalsApiSlice';
+import { 
+  useGetCarsQuery,
+  useGetCarByIdQuery 
+} from '../store/features/cars/carsApiSlice';
+import { 
+  useGetAllCustomersQuery,
+  useGetCustomerByIdQuery 
+} from '../store/features/customers/customersApiSlice';
 
 const RentalDetails = () => {
   const { id } = useParams();
@@ -11,75 +23,94 @@ const RentalDetails = () => {
   const customerId = searchParams.get('customerId');
   const carId = searchParams.get('carId');
   
-  const [rental, setRental] = useState(null);
-  const [availableCars, setAvailableCars] = useState([]);
-  const [customers, setCustomers] = useState([]);
-  const [loading, setLoading] = useState(true);
-
   const [error, setError] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isNewRental = id === 'new';
 
+  // RTK Query hooks
+  const { 
+    data: availableCarsData = [], 
+    isLoading: availableCarsLoading 
+  } = useGetCarsQuery({ status: 'available' });
+  
+  const { 
+    data: customersData = [], 
+    isLoading: customersLoading 
+  } = useGetAllCustomersQuery();
+  
+  // Only fetch rental data if we're not creating a new rental
+  const { 
+    data: rentalData, 
+    isLoading: rentalLoading,
+    isError: isRentalError,
+    error: rentalError
+  } = useGetRentalByIdQuery(id, { 
+    skip: isNewRental 
+  });
+
+  // Fetch car and customer details if we have a rental
+  const { 
+    data: carData,
+    isLoading: carLoading
+  } = useGetCarByIdQuery(rentalData?.carId, { 
+    skip: isNewRental || !rentalData?.carId 
+  });
+  
+  const { 
+    data: customerData,
+    isLoading: customerLoading
+  } = useGetCustomerByIdQuery(rentalData?.customerId, { 
+    skip: isNewRental || !rentalData?.customerId 
+  });
+
+  // Mutations for create, update, delete
+  const [createRental, { isLoading: isCreating }] = useCreateRentalMutation();
+  const [updateRental, { isLoading: isUpdating }] = useUpdateRentalMutation();
+  const [deleteRental, { isLoading: isDeleting }] = useDeleteRentalMutation();
+
+  // Format cars for display in select dropdown
+  const availableCars = availableCarsData.map(car => ({
+    id: car.id,
+    name: `${car.make} ${car.model} (${car.year})`,
+    dailyRate: car.dailyRate
+  }));
+  
+  // Format customers for display in select dropdown
+  const customers = customersData.map(customer => ({
+    id: customer.id,
+    name: customer.name
+  }));
+
+  // Determine if any data is still loading
+  const loading = availableCarsLoading || 
+                 customersLoading || 
+                 (!isNewRental && (rentalLoading || carLoading || customerLoading));
+
+  const isSubmitting = isCreating || isUpdating || isDeleting;
+
+  // Combine rental, car and customer data
+  const rental = isNewRental ? {
+    customerId: customerId ? parseInt(customerId) : '',
+    carId: carId ? parseInt(carId) : '',
+    startDate: '',
+    endDate: '',
+    status: 'Upcoming',
+    notes: ''
+  } : rentalData && carData && customerData ? {
+    ...rentalData,
+    customerName: customerData.name,
+    carName: `${carData.make} ${carData.model} (${carData.year})`,
+    dailyRate: carData.dailyRate,
+    // Calculate total amount based on days and rate
+    totalAmount: calculateNumberOfDays(rentalData.startDate, rentalData.endDate) * carData.dailyRate
+  } : null;
+
+  // Handle errors
   useEffect(() => {
-    const fetchRentalData = async () => {
-      try {
-        setLoading(true);
-
-        // Fetch available cars and customers for new rentals
-        const [availableCarsData, customersData] = await Promise.all([
-          carService.getAvailableCars(),
-          customerService.getAllCustomers()
-        ]);
-
-        // Format cars for display in select dropdown
-        setAvailableCars(availableCarsData.map(car => ({
-          id: car.id,
-          name: `${car.make} ${car.model} (${car.year})`,
-          dailyRate: car.dailyRate
-        })) || []);
-        
-        // Format customers for display in select dropdown
-        setCustomers(customersData.map(customer => ({
-          id: customer.id,
-          name: customer.name
-        })) || []);
-
-        if (id === 'new') {
-          setRental({
-            customerId: customerId ? parseInt(customerId) : '',
-            carId: carId ? parseInt(carId) : '',
-            startDate: '',
-            endDate: '',
-            status: 'Upcoming',
-            notes: ''
-          });
-        } else {
-          // Fetch rental data
-          const rentalData = await rentalService.getRentalById(id);
-          
-          // Get additional car and customer details
-          const carData = await carService.getCarById(rentalData.carId);
-          const customerData = await customerService.getCustomerById(rentalData.customerId);
-          
-          // Combine all data
-          setRental({
-            ...rentalData,
-            customerName: customerData.name,
-            carName: `${carData.make} ${carData.model} (${carData.year})`,
-            dailyRate: carData.dailyRate,
-            // Calculate total amount based on days and rate
-            totalAmount: calculateNumberOfDays(rentalData.startDate, rentalData.endDate) * carData.dailyRate
-          });
-        }
-      } catch (err) {
-        console.error('Error fetching rental data:', err);
-        setError('Failed to load rental data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRentalData();
-  }, [id, customerId, carId]);
+    if (isRentalError) {
+      console.error('Error fetching rental data:', rentalError);
+      setError('Failed to load rental data');
+    }
+  }, [isRentalError, rentalError]);
 
   // Form state for new/edit rental
   const [formData, setFormData] = useState({
@@ -151,7 +182,6 @@ const RentalDetails = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
     
     try {
       // Prepare rental data
@@ -164,38 +194,29 @@ const RentalDetails = () => {
       };
       
       if (id === 'new') {
-        await rentalService.createRental(rentalData);
+        await createRental(rentalData).unwrap();
+        toast.success('Rental created successfully');
         navigate('/rentals');
       } else {
-        await rentalService.updateRental(id, rentalData);
-        // Refresh rental data
-        const updatedRental = await rentalService.getRentalById(id);
-        const carData = await carService.getCarById(updatedRental.carId);
-        const customerData = await customerService.getCustomerById(updatedRental.customerId);
-        
-        setRental({
-          ...updatedRental,
-          customerName: customerData.name,
-          carName: `${carData.make} ${carData.model} (${carData.year})`,
-          dailyRate: carData.rentalPricePerDay,
-          totalAmount: updatedRental.totalCost
-        });
+        await updateRental({ id, ...rentalData }).unwrap();
+        toast.success('Rental updated successfully');
       }
     } catch (err) {
       console.error('Error saving rental:', err);
+      toast.error('Failed to save rental. Please try again.');
       setError('Failed to save rental. Please try again.');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   const handleDelete = async () => {
     if (window.confirm('Are you sure you want to delete this rental?')) {
       try {
-        await rentalService.deleteRental(id);
+        await deleteRental(id).unwrap();
+        toast.success('Rental deleted successfully');
         navigate('/rentals');
       } catch (err) {
         console.error('Failed to delete rental:', err);
+        toast.error('Failed to delete rental. Please try again.');
         setError('Failed to delete rental. Please try again.');
       }
     }

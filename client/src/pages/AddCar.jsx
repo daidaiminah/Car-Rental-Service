@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useSelector } from 'react-redux';
 import { FiUpload, FiArrowLeft } from 'react-icons/fi';
-import carService from '../services/carService';
 import { toast } from 'react-toastify';
+import { useAddCarMutation } from '../store/features/cars/carsApiSlice';
+import { selectCurrentUser } from '../store/features/auth/authSlice';
 
 const AddCar = () => {
-  const { user } = useAuth();
+  const user = useSelector(selectCurrentUser);
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  
+  // Use RTK Query mutation hook
+  const [addCar, { isLoading }] = useAddCarMutation();
   
   const [carData, setCarData] = useState({
     make: '',
@@ -36,44 +40,165 @@ const AddCar = () => {
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
-    if (!file) return;
+    console.log('File selected:', file); // Debug log
+    
+    if (!file) {
+      console.log('No file selected');
+      return;
+    }
 
-    // For now, we'll use a simple file reader to create a preview
-    // In production, you'd want to upload this to a server or cloud storage
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size should be less than 5MB');
+      console.log('File too large:', file.size);
+      return;
+    }
+
+    // Create preview
     const reader = new FileReader();
     reader.onload = () => {
       setImagePreview(reader.result);
-      setCarData(prev => ({
-        ...prev,
-        image: reader.result
-      }));
     };
     reader.readAsDataURL(file);
+    
+    // Store the file object for later upload
+    setSelectedFile(file);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    console.log('Form submitted');
+    console.log('Selected file:', selectedFile);
+    
+    if (!selectedFile) {
+      toast.error('Please select an image');
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(selectedFile.type)) {
+      toast.error('Invalid file type. Please upload a JPG, PNG, or WebP image.');
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (selectedFile.size > 5 * 1024 * 1024) {
+      toast.error('Image size should be less than 5MB');
+      return;
+    }
+
+    // Validate required fields with better labels
+    const requiredFields = [
+      { field: 'make', label: 'Make' },
+      { field: 'model', label: 'Model' },
+      { field: 'year', label: 'Year' },
+      { field: 'pricePerDay', label: 'Price per day' },
+      { field: 'type', label: 'Type' },
+      { field: 'transmission', label: 'Transmission' },
+      { field: 'seats', label: 'Number of seats' },
+      { field: 'fuelType', label: 'Fuel type' }
+    ];
+    
+    const missingFields = requiredFields
+      .filter(({ field }) => !carData[field])
+      .map(({ label }) => label);
+    
+    if (missingFields.length > 0) {
+      toast.error(`Please fill in all required fields: ${missingFields.join(', ')}`);
+      return;
+    }
+
+    // Validate year is a number and reasonable (1900-current year + 1)
+    const currentYear = new Date().getFullYear();
+    if (isNaN(carData.year) || carData.year < 1900 || carData.year > currentYear + 1) {
+      toast.error(`Please enter a valid year between 1900 and ${currentYear + 1}`);
+      return;
+    }
+
+    // Validate price is a positive number
+    if (isNaN(carData.pricePerDay) || parseFloat(carData.pricePerDay) <= 0) {
+      toast.error('Please enter a valid price per day (must be greater than 0)');
+      return;
+    }
+
     try {
-      setLoading(true);
+      // Create FormData object
+      const formData = new FormData();
       
-      // Add owner ID to car data
-      const carWithOwner = {
-        ...carData,
-        ownerId: user.id,
-        owner: user.name
-      };
+      // Append all car data fields
+      Object.entries(carData).forEach(([key, value]) => {
+        // Skip empty values to avoid sending undefined or null
+        if (value !== undefined && value !== null && value !== '') {
+          formData.append(key, value);
+          console.log(`Added to formData: ${key} =`, value);
+        }
+      });
       
-      // Create car in backend
-      await carService.createCar(carWithOwner);
+      // Append the file
+      formData.append('image', selectedFile);
+      console.log('Added image to formData:', selectedFile.name, '(', selectedFile.size, 'bytes )');
       
+      // Add owner information
+      if (user) {
+        formData.append('ownerId', user.id);
+        formData.append('owner', user.name || 'Car Owner');
+        console.log('Added owner info - ID:', user.id, 'Name:', user.name);
+      }
+      
+      // Add default values for required fields if not provided
+      if (!formData.has('isAvailable')) {
+        formData.append('isAvailable', 'true');
+        console.log('Added default isAvailable: true');
+      }
+      
+      // Convert pricePerDay to rentalPricePerDay for the server
+      if (formData.has('pricePerDay') && !formData.has('rentalPricePerDay')) {
+        const price = formData.get('pricePerDay');
+        formData.append('rentalPricePerDay', price);
+        console.log('Mapped pricePerDay to rentalPricePerDay:', price);
+      }
+      
+      // Debug: Log form data before sending
+      console.log('FormData contents:');
+      for (let [key, value] of formData.entries()) {
+        console.log(`${key}:`, value);
+      }
+      
+      // Create car using RTK Query mutation with FormData
+      console.log('Sending request to server...');
+      const result = await addCar(formData).unwrap();
+      
+      console.log('Server response:', result);
       toast.success('Car added successfully!');
-      navigate('/owner-dashboard');
+      navigate('/owner');
     } catch (error) {
       console.error('Error adding car:', error);
-      toast.error(error.message || 'Failed to add car');
-    } finally {
-      setLoading(false);
+      console.error('Error details:', {
+        status: error.status,
+        data: error.data,
+        message: error.message,
+        stack: error.stack
+      });
+      
+      let errorMessage = 'Failed to add car. Please try again.';
+      
+      if (error.status === 413) {
+        errorMessage = 'The image file is too large. Please use an image smaller than 5MB.';
+      } else if (error.data) {
+        if (typeof error.data === 'string') {
+          errorMessage = error.data;
+        } else if (error.data.message) {
+          errorMessage = error.data.message;
+        } else if (error.data.error) {
+          errorMessage = error.data.error;
+        }
+      } else if (error.error) {
+        errorMessage = error.error;
+      }
+      
+      toast.error(errorMessage);
     }
   };
 
@@ -301,11 +426,12 @@ const AddCar = () => {
                         <span>Upload a file</span>
                         <input
                           id="file-upload"
-                          name="file-upload"
+                          name="image"
                           type="file"
                           className="sr-only"
                           accept="image/*"
                           onChange={handleImageChange}
+                          onClick={(e) => e.target.value = null} // Allow re-selecting the same file
                         />
                       </label>
                       <p className="pl-1">or drag and drop</p>
@@ -328,10 +454,10 @@ const AddCar = () => {
               </button>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={isLoading}
                 className="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
               >
-                {loading ? 'Adding...' : 'Add Car'}
+                {isLoading ? 'Adding...' : 'Add Car'}
               </button>
             </div>
           </form>

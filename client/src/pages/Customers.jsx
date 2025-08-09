@@ -1,43 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import customerService from '../services/customerService.js';
+import { toast } from 'react-toastify';
+import { 
+  useGetAllCustomersQuery, 
+  useDeleteCustomerMutation 
+} from '../store/features/customers/customersApiSlice';
 
 const Customers = () => {
-  const [customers, setCustomers] = useState([]);  
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // Fetch customers from the API
-  useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
-        setLoading(true);
-        const response = await customerService.getAllCustomers();
-        
-        // Ensure we have a valid array before setting state
-        if (Array.isArray(response)) {
-          setCustomers(response);
-          setError(null);
-        } else {
-          console.error('Invalid response format:', response);
-          setError('Received invalid data format from server');
-          setCustomers([]);
-        }
-      } catch (err) {
-        console.error('Failed to fetch customers:', err);
-        setError('Failed to fetch customers. Please try again.');
-        setCustomers([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCustomers();
-  }, []);
-
-
-
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Use RTK Query hook to fetch customers
+  const { 
+    data: customers = [], 
+    isLoading, 
+    isError, 
+    error,
+    refetch 
+  } = useGetAllCustomersQuery();
+  
+  // Use RTK Query mutation hook for deleting customers
+  const [deleteCustomer, { isLoading: isDeleting }] = useDeleteCustomerMutation();
+
+
+
+
   
   // Filter customers based on search term
   const filteredCustomers = Array.isArray(customers) ? customers.filter(customer => 
@@ -55,12 +41,12 @@ const Customers = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this customer?')) {
       try {
-        await customerService.deleteCustomer(id);
-        // Update local state after successful API call
-        setCustomers(customers.filter(customer => customer.id !== id));
+        // Use RTK Query mutation to delete the customer
+        await deleteCustomer(id).unwrap();
+        toast.success('Customer deleted successfully');
       } catch (err) {
         console.error('Failed to delete customer:', err);
-        alert('Failed to delete customer. Please try again.');
+        toast.error(err.data?.message || err.error || 'Failed to delete customer. Please try again.');
       }
     }
   };
@@ -104,7 +90,7 @@ const Customers = () => {
       </div>
 
       {/* Loading/Error State */}
-      {loading && (
+      {isLoading && (
         <div className="flex justify-center items-center h-64">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -113,29 +99,12 @@ const Customers = () => {
         </div>
       )}
 
-      {error && (
+      {isError && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          <p>{error}</p>
+          <p>{error?.data?.message || error?.error || 'Failed to load customers'}</p>
           <button 
             className="mt-2 text-primary hover:underline"
-            onClick={() => {
-              setError(null);
-              // Re-fetch customers
-              const fetchCustomers = async () => {
-                try {
-                  setLoading(true);
-                  const data = await customerService.getAllCustomers();
-                  setCustomers(data);
-                  setError(null);
-                } catch (err) {
-                  console.error('Failed to fetch customers:', err);
-                  setError('Failed to fetch customers. Please try again.');
-                } finally {
-                  setLoading(false);
-                }
-              };
-              fetchCustomers();
-            }}
+            onClick={() => refetch()}
           >
             Try Again
           </button>
@@ -143,7 +112,7 @@ const Customers = () => {
       )}
 
       {/* Customers List */}
-      {!loading && !error && (
+      {!isLoading && !isError && (
         <div className="card">
           <div className="overflow-x-auto">
             <table className="w-full">

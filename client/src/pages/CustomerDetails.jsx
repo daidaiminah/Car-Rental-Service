@@ -1,50 +1,55 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import customerService from '../services/customerService.js';
-import rentalService from '../services/rentalService.js';
+import { toast } from 'react-toastify';
+import { 
+  useGetCustomerByIdQuery, 
+  useCreateCustomerMutation, 
+  useUpdateCustomerMutation, 
+  useDeleteCustomerMutation 
+} from '../store/features/customers/customersApiSlice';
+import { useGetRentalsByRenterIdQuery } from '../store/features/rentals/rentalsApiSlice';
 
 const CustomerDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [customer, setCustomer] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [customerRentals, setCustomerRentals] = useState([]);
-
-  useEffect(() => {
-    const fetchCustomerData = async () => {
-      try {
-        setLoading(true);
-        
-        if (id === 'new') {
-          setCustomer({
-            name: '',
-            email: '',
-            phone: '',
-            address: '',
-            driverLicense: ''
-          });
-        } else {
-          // Fetch customer data
-          const customerData = await customerService.getCustomerById(id);
-          setCustomer(customerData);
-          
-          // Fetch customer rentals
-          const rentalsData = await rentalService.getRentalsByCustomerId(id);
-          setCustomerRentals(rentalsData || []);
-        }
-      } catch (err) {
-        console.error('Error fetching customer data:', err);
-        setError('Failed to load customer data');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchCustomerData();
-  }, [id]);
-
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Skip API call for new customer form
+  const skipQuery = id === 'new';
+  
+  // Use RTK Query hooks
+  const { 
+    data: customer, 
+    isLoading: isCustomerLoading, 
+    isError: isCustomerError,
+    error: customerError
+  } = useGetCustomerByIdQuery(id, {
+    skip: skipQuery
+  });
+  
+  const { 
+    data: customerRentals = [], 
+    isLoading: isRentalsLoading,
+    isError: isRentalsError,
+    error: rentalsError 
+  } = useGetRentalsByRenterIdQuery(id, {
+    skip: skipQuery
+  });
+  
+  // Combine loading states
+  const isLoading = skipQuery ? false : (isCustomerLoading || isRentalsLoading);
+  
+  // Create empty customer object for new customer form
+  const emptyCustomer = {
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    driverLicense: ''
+  };
+
+
   
   // Form state for new/edit customer
   const [formData, setFormData] = useState({
@@ -62,7 +67,12 @@ const CustomerDetails = () => {
         phone: customer.phone || ''
       });
     }
-  }, [customer]);
+  }, [customer, id]);
+  
+  // Use RTK Query mutation hooks
+  const [createCustomer] = useCreateCustomerMutation();
+  const [updateCustomer] = useUpdateCustomerMutation();
+  const [deleteCustomer] = useDeleteCustomerMutation();
   
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -75,20 +85,23 @@ const CustomerDetails = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
     
     try {
       if (id === 'new') {
-        await customerService.createCustomer(formData);
+        // Use RTK Query mutation to create customer
+        await createCustomer(formData).unwrap();
+        toast.success('Customer created successfully');
         navigate('/customers');
       } else {
-        await customerService.updateCustomer(id, formData);
-        // Refresh customer data
-        const updatedCustomer = await customerService.getCustomerById(id);
-        setCustomer(updatedCustomer);
+        // Use RTK Query mutation to update customer
+        await updateCustomer({ id, ...formData }).unwrap();
+        toast.success('Customer updated successfully');
       }
     } catch (err) {
       console.error('Error saving customer:', err);
-      setError('Failed to save customer. Please try again.');
+      setError(err.data?.message || err.error || 'Failed to save customer. Please try again.');
+      toast.error('Failed to save customer');
     } finally {
       setIsSubmitting(false);
     }
@@ -97,19 +110,24 @@ const CustomerDetails = () => {
   const handleDelete = async () => {
     if (window.confirm('Are you sure you want to delete this customer?')) {
       try {
-        await customerService.deleteCustomer(id);
+        // Use RTK Query mutation to delete customer
+        await deleteCustomer(id).unwrap();
+        toast.success('Customer deleted successfully');
         navigate('/customers');
       } catch (err) {
         console.error('Failed to delete customer:', err);
-        setError('Failed to delete customer. Please try again.');
+        setError(err.data?.message || err.error || 'Failed to delete customer. Please try again.');
+        toast.error('Failed to delete customer');
       }
     }
   };
 
-  if (error) {
+  // Show error from API calls
+  if (isCustomerError || isRentalsError) {
+    const apiError = customerError || rentalsError;
     return (
       <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-        <p>{error}</p>
+        <p>{apiError?.data?.message || apiError?.error || 'Failed to load data'}</p>
         <button 
           className="mt-2 text-primary hover:underline"
           onClick={() => window.location.reload()}
@@ -120,7 +138,7 @@ const CustomerDetails = () => {
     );
   }
   
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="text-center">
@@ -135,7 +153,7 @@ const CustomerDetails = () => {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">
-          {id === 'new' ? 'Add New Customer' : `Customer: ${customer.name}`}
+          {id === 'new' ? 'Add New Customer' : `Customer: ${customer?.name || 'Loading...'}`}
         </h1>
         {id !== 'new' && (
           <div className="flex space-x-2">

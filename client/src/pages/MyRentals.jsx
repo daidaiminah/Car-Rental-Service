@@ -1,34 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import rentalService from '../services/rentalService';
+import { useSelector } from 'react-redux';
 import { format } from 'date-fns';
 import { FaCalendarAlt, FaCar, FaUser, FaMoneyBillWave } from 'react-icons/fa';
+import { selectCurrentUser } from '../store/features/auth/authSlice';
+import { useGetRentalsByOwnerIdQuery } from '../store/features/rentals/rentalsApiSlice';
 
 const MyRentals = () => {
-  const { user } = useAuth();
-  const [rentals, setRentals] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const user = useSelector(selectCurrentUser);
   const [filter, setFilter] = useState('all'); // all, active, completed
 
-  useEffect(() => {
-    const fetchMyRentals = async () => {
-      try {
-        setLoading(true);
-        // Assuming rentalService has a method to get rentals by owner ID
-        const response = await rentalService.getRentalsByOwnerId(user.id);
-        setRentals(response.data);
-      } catch (error) {
-        console.error('Error fetching rentals:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Use RTK Query hook to fetch rentals by owner ID
+  const { 
+    data: rentals = [], 
+    isLoading: loading,
+    isError,
+    error 
+  } = useGetRentalsByOwnerIdQuery(user?.id, {
+    skip: !user?.id
+  });
 
-    if (user?.id) {
-      fetchMyRentals();
-    }
-  }, [user]);
+  // Show error if there's an issue fetching rentals
+  if (isError) {
+    console.error('Error fetching rentals:', error);
+  }
 
   const filteredRentals = rentals.filter(rental => {
     const now = new Date();

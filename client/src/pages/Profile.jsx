@@ -1,14 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useSelector } from 'react-redux';
 import { FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaEdit, FaKey } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import userService from '../services/userService';
+import { selectCurrentUser } from '../store/features/auth/authSlice';
+import { 
+  useGetUserProfileQuery,
+  useUpdateUserProfileMutation,
+  useChangePasswordMutation 
+} from '../store/features/users/usersApiSlice';
 
 const Profile = () => {
-  const { user, updateUserInfo } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const user = useSelector(selectCurrentUser);
   const [editMode, setEditMode] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  
+  // Get user profile data using RTK Query
+  const { 
+    data: userData, 
+    isLoading: profileLoading,
+    refetch: refetchUserProfile
+  } = useGetUserProfileQuery(user?.id, {
+    skip: !user?.id
+  });
+  
+  // Update profile mutation
+  const [updateProfile, { isLoading: updateLoading }] = useUpdateUserProfileMutation();
+  
+  // Change password mutation
+  const [changePassword, { isLoading: passwordLoading }] = useChangePasswordMutation();
   
   const [profileData, setProfileData] = useState({
     name: '',
@@ -26,19 +45,23 @@ const Profile = () => {
     confirmPassword: ''
   });
 
+  // Update local state when user data is fetched
   useEffect(() => {
-    if (user) {
+    if (userData) {
       setProfileData({
-        name: user.name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        address: user.address || '',
-        city: user.city || '',
-        country: user.country || '',
-        profileImage: user.profileImage || ''
+        name: userData.name || '',
+        email: userData.email || '',
+        phone: userData.phone || '',
+        address: userData.address || '',
+        city: userData.city || '',
+        country: userData.country || '',
+        profileImage: userData.profileImage || ''
       });
     }
-  }, [user]);
+  }, [userData]);
+  
+  // Loading state derived from RTK Query loading states
+  const loading = profileLoading || updateLoading || passwordLoading;
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -74,22 +97,22 @@ const Profile = () => {
 
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     
     try {
-      // Call API to update user profile
-      const response = await userService.updateProfile(user.id, profileData);
+      // Call RTK Query mutation to update profile
+      await updateProfile({
+        id: user.id,
+        ...profileData
+      }).unwrap();
       
-      // Update local auth context
-      updateUserInfo(response.data);
+      // Refetch user profile to update the UI
+      refetchUserProfile();
       
       toast.success('Profile updated successfully');
       setEditMode(false);
     } catch (error) {
       console.error('Error updating profile:', error);
       toast.error('Failed to update profile. Please try again.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -101,14 +124,13 @@ const Profile = () => {
       return;
     }
     
-    setLoading(true);
-    
     try {
-      // Call API to change password
-      await userService.changePassword(user.id, {
+      // Call RTK Query mutation to change password
+      await changePassword({
+        id: user.id,
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword
-      });
+      }).unwrap();
       
       toast.success('Password changed successfully');
       setShowPasswordForm(false);
@@ -120,8 +142,6 @@ const Profile = () => {
     } catch (error) {
       console.error('Error changing password:', error);
       toast.error('Failed to change password. Please check your current password and try again.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -142,8 +162,8 @@ const Profile = () => {
             </div>
             <div className="text-center md:text-left">
               <h2 className="text-xl font-bold text-white">{profileData.name}</h2>
-              <p className="text-gray-300">{user?.role === 'customer' ? 'Renter' : user?.role}</p>
-              <p className="text-gray-300">Member since {new Date(user?.createdAt || Date.now()).toLocaleDateString()}</p>
+              <p className="text-gray-300">{userData?.role === 'customer' ? 'Renter' : userData?.role}</p>
+              <p className="text-gray-300">Member since {new Date(userData?.createdAt || Date.now()).toLocaleDateString()}</p>
             </div>
           </div>
           

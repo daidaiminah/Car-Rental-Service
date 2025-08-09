@@ -1,21 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useDispatch } from 'react-redux';
 import { FiLogIn, FiUser, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
 import { FaCar } from 'react-icons/fa';
+import { useLoginMutation } from "../store/features/auth/authApiSlice";
+import { setCredentials } from '../store/features/auth/authSlice';
+import { toast } from 'react-toastify';
+import Title from '../components/Title';
 
 const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    password: '',
+    role: ''
   });
   const [userType, setUserType] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const dispatch = useDispatch();
+  const [login, { isLoading }] = useLoginMutation();
 
   // Map userType to role for the backend
   const userTypeToRole = {
@@ -41,30 +46,89 @@ const Login = () => {
     
     // Validate role selection
     if (!userType) {
-      setError('Please select what you want to do');
+      toast.error('Please select what you want to do');
       return;
     }
     
-    setIsLoading(true);
+    // Show loading toast
+    const toastId = toast.loading('Signing in...');
 
     try {
-      // Convert userType to role
+      // Map user type to role and add to form data
       const role = userTypeToRole[userType];
+      const loginData = { ...formData, role };
       
-      // Login with role
-      await login(formData.email, formData.password, role);
+      console.log('Attempting login with:', loginData);
       
-      // Redirect is handled in the AuthContext after successful login
+      // Call the login mutation from the store
+      const response = await login(loginData).unwrap();
+      console.log('Login response:', response);
+      
+      // The response should include both token and user data
+      if (response && response.token) {
+        // Dismiss loading toast
+        toast.dismiss(toastId);
+        
+        // Show success message
+        const welcomeMessage = response.user?.name 
+          ? `Welcome back, ${response.user.name}!` 
+          : 'Successfully logged in!';
+        toast.success(welcomeMessage);
+        // Transform the response to match what setCredentials expects
+        const userData = {
+          id: response.id,
+          name: response.name,
+          email: response.email,
+          role: response.role || 'customer'
+        };
+        
+        console.log('Dispatching credentials with:', { user: userData, token: response.token });
+        
+        // Store the token in localStorage
+        localStorage.setItem('token', response.token);
+        
+        // Dispatch the setCredentials action with the transformed data
+        dispatch(setCredentials({
+          user: userData,
+          token: response.token
+        }));
+        
+        // Determine redirect path based on role
+        let redirectPath = '/';
+        if (userData.role === 'admin') {
+          redirectPath = '/admin';
+        } else if (userData.role === 'owner') {
+          redirectPath = '/owner';
+        } else if (userData.role === 'customer') {
+          redirectPath = '/renter';
+        }
+        
+        console.log('Navigating to:', redirectPath);
+        
+        // Use the location state for redirect if available, otherwise use role-based path
+        const from = location.state?.from?.pathname || redirectPath;
+        
+        // Add a small delay to allow the toast to be seen before navigation
+        setTimeout(() => {
+          navigate(from, { replace: true });
+        }, 1500);
+      } else {
+        // If we get here, the token is missing from the response
+        toast.dismiss(toastId);
+        toast.error('Invalid response from server. Please try again.');
+        console.error('Login failed: Token missing from response');
+      }
     } catch (err) {
+      toast.dismiss(toastId);
+      const errorMessage = err.data?.message || err.error || 'Login failed. Please check your credentials.';
+      toast.error(errorMessage);
       console.error('Login error:', err);
-      setError(err.message || 'Login failed. Please check your credentials.');
-    } finally {
-      setIsLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <Title title="Login" />
       <div className="max-w-md w-full space-y-8">
         <div>
           <div className="flex justify-center">
@@ -208,3 +272,4 @@ const Login = () => {
 };
 
 export default Login;
+

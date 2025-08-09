@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useDispatch } from 'react-redux';
 import { FiUser, FiMail, FiLock, FiArrowRight, FiEye, FiEyeOff } from 'react-icons/fi';
 import { FaCar } from 'react-icons/fa';
-import { register } from '../services/authService';
+import { useSignupMutation } from '../store/features/auth/authApiSlice';
+import { setCredentials } from '../store/features/auth/authSlice';
+import { toast } from 'react-toastify';
+import Title from '../components/Title';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -16,11 +19,13 @@ const Signup = () => {
   
   const [userType, setUserType] = useState(''); // To track selected user type
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const dispatch = useDispatch();
+  
+  // Use RTK Query mutation hook for signup
+  const [signup, { isLoading }] = useSignupMutation();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -32,11 +37,15 @@ const Signup = () => {
 
   const validateForm = () => {
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      toast.error('Passwords do not match');
       return false;
     }
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
+      toast.error('Password must be at least 6 characters long');
+      return false;
+    }
+    if (!formData.name || !formData.email) {
+      toast.error('Please fill in all required fields');
       return false;
     }
     return true;
@@ -56,32 +65,58 @@ const Signup = () => {
     
     if (!validateForm()) return;
     
-    setIsLoading(true);
+    // Show loading toast
+    const toastId = toast.loading('Creating your account...');
 
     try {
-      // Register the user
+      // Use RTK Query mutation to register the user
       const { name, email, password, role } = formData;
-      await register({ name, email, password, role });
+      const response = await signup({ name, email, password, role }).unwrap();
       
-      // Auto-login after successful registration
-      await login(email, password);
+      // Dismiss loading toast
+      toast.dismiss();
       
-      // Redirect based on user role
-      if (role === 'owner') {
-        navigate('/owner-dashboard');
-      } else {
-        navigate('/renter-dashboard');
-      }
+      // Show success message
+      const successMessage = `Welcome to Whip In Town, ${name}! Your account has been created successfully.`;
+      toast.success(successMessage);
+      
+      // The backend returns user data in response.data
+      const { token, ...userData } = response;
+      
+      // Store user data in Redux state
+      dispatch(setCredentials({
+        user: userData,
+        token: token,
+        role: userData.role
+      }));
+      
+      // Redirect to login after a short delay
+      setTimeout(() => {
+        navigate('/login', { 
+          replace: true,
+          state: { 
+            from: '/',
+            message: 'Please login with your new credentials.'
+          }
+        });
+      }, 2000);
     } catch (err) {
       console.error('Signup error:', err);
-      setError(err.message || 'Registration failed. Please try again.');
-    } finally {
-      setIsLoading(false);
+      // Dismiss loading toast if still showing
+      toast.dismiss();
+      
+      // Show error toast
+      const errorMessage = err.data?.message || err.error || 'Registration failed. Please try again.';
+      toast.error(errorMessage);
+      
+      // Also set error for form display if needed
+      setError(errorMessage);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+       <Title title="Signup" />
       <div className="max-w-md w-full space-y-8">
         <div>
           <div className="flex justify-center">

@@ -1,60 +1,73 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import carService from '../services/carService';
+import React, { useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { FaSearch, FaCar, FaGasPump, FaCog, FaUsers } from 'react-icons/fa';
 import CarDetailModal from '../components/CarDetailModal';
+import { useGetCarsQuery } from '../store/features/cars/carsApiSlice';
+import { setFilters, selectCarFilters } from '../store/features/cars/carsSlice';
 
 const BrowseCars = () => {
-  const { user } = useAuth();
-  const [cars, setCars] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch();
+  const reduxFilters = useSelector(selectCarFilters);
+  
   const [selectedCar, setSelectedCar] = useState(null);
   const [showModal, setShowModal] = useState(false);
   
-  // Filter states
-  const [filters, setFilters] = useState({
-    make: '',
-    type: '',
-    transmission: '',
-    minPrice: '',
-    maxPrice: '',
+  // Local filter states synced with Redux
+  const [localFilters, setLocalFilters] = useState({
+    make: reduxFilters.make || '',
+    type: reduxFilters.type || '',
+    transmission: reduxFilters.transmission || '',
+    minPrice: reduxFilters.minPrice || '',
+    maxPrice: reduxFilters.maxPrice || '',
   });
 
-  useEffect(() => {
-    const fetchCars = async () => {
-      try {
-        setLoading(true);
-        const response = await carService.getCars({
-          status: 'available',
-          ...filters
-        });
-        setCars(response.data);
-      } catch (error) {
-        console.error('Error fetching cars:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCars();
-  }, [filters]);
+  // Use RTK Query hook to fetch cars with current filters
+  const { 
+    data: cars = [], 
+    isLoading, 
+    isError, 
+    error 
+  } = useGetCarsQuery({
+    status: 'available',
+    ...reduxFilters
+  });
+  
+  // Show error in console if API request fails
+  if (isError) {
+    console.error('Error fetching cars:', error);
+  }
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilters(prev => ({
+    
+    // Update local state for controlled inputs
+    setLocalFilters(prev => ({
       ...prev,
       [name]: value
     }));
+    
+    // Update Redux state for filtering and persistence
+    dispatch(setFilters({ [name]: value }));
   };
 
   const resetFilters = () => {
-    setFilters({
+    // Reset local state
+    setLocalFilters({
       make: '',
       type: '',
       transmission: '',
       minPrice: '',
       maxPrice: '',
     });
+    
+    // Reset Redux state
+    dispatch(setFilters({
+      make: '',
+      type: '',
+      transmission: '',
+      minPrice: '',
+      maxPrice: '',
+    }));
   };
 
   const openCarDetails = (car) => {
@@ -66,7 +79,7 @@ const BrowseCars = () => {
     setShowModal(false);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -87,7 +100,7 @@ const BrowseCars = () => {
               <select
                 id="make"
                 name="make"
-                value={filters.make}
+                value={localFilters.make}
                 onChange={handleFilterChange}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
               >
@@ -108,7 +121,7 @@ const BrowseCars = () => {
               <select
                 id="type"
                 name="type"
-                value={filters.type}
+                value={localFilters.type}
                 onChange={handleFilterChange}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
               >
@@ -127,7 +140,7 @@ const BrowseCars = () => {
               <select
                 id="transmission"
                 name="transmission"
-                value={filters.transmission}
+                value={localFilters.transmission}
                 onChange={handleFilterChange}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
               >
@@ -143,7 +156,7 @@ const BrowseCars = () => {
                 type="number"
                 id="minPrice"
                 name="minPrice"
-                value={filters.minPrice}
+                value={localFilters.minPrice}
                 onChange={handleFilterChange}
                 placeholder="Min $"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
@@ -156,7 +169,7 @@ const BrowseCars = () => {
                 type="number"
                 id="maxPrice"
                 name="maxPrice"
-                value={filters.maxPrice}
+                value={localFilters.maxPrice}
                 onChange={handleFilterChange}
                 placeholder="Max $"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
@@ -202,7 +215,7 @@ const BrowseCars = () => {
               <div key={car.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
                 <div className="relative h-48">
                   <img 
-                    src={car.image || 'https://via.placeholder.com/300x200?text=No+Image'} 
+                    src={car.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image'} 
                     alt={`${car.make} ${car.model}`}
                     className="w-full h-full object-cover"
                   />
@@ -232,7 +245,7 @@ const BrowseCars = () => {
                   </div>
                   
                   <div className="mt-4 flex justify-between items-center">
-                    <span className="text-primary font-bold">${car.pricePerDay}/day</span>
+                    <span className="text-primary font-bold">${car.rentalPricePerDay}/day</span>
                     <button 
                       onClick={() => openCarDetails(car)}
                       className="btn-primary-outline text-sm"

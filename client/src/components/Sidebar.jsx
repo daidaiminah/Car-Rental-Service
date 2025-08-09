@@ -1,14 +1,14 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../store/authContext';
 
 const Sidebar = () => {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   
-  // Determine which links to show based on user role
+  // Navigation link definitions for different user roles
   const getNavLinks = () => {
-    // Default admin links
+    // Admin dashboard links
     const adminLinks = [
       { 
         to: '/admin', 
@@ -38,69 +38,80 @@ const Sidebar = () => {
       },
     ];
     
-    // Owner-specific links
+    // Owner dashboard links
     const ownerLinks = [
       { 
-        to: '/owner-dashboard', 
+        to: '/owner', 
         label: 'Dashboard', 
         icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
         mobileIcon: 'M4 6h16M4 12h16M4 18h16'
       },
       { 
-        to: '/add-car', 
+        to: '/owner/add_cars', 
         label: 'Add New Car', 
         icon: 'M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z',
         mobileIcon: 'M12 4v16m8-8H4'
       },
       { 
-        to: '/my-cars', 
+        to: '/owner/cars', 
         label: 'My Cars', 
         icon: 'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0',
-        mobileIcon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4'
+        mobileIcon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4',
+        exact: false
       },
       { 
-        to: '/my-rentals', 
+        to: '/owner/rentals', 
         label: 'Rental History', 
         icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
-        mobileIcon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2'
+        mobileIcon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2',
+        exact: false
       },
+      { 
+        to: '/owner/profile', 
+        label: 'My Profile', 
+        icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
+        mobileIcon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
+      }
     ];
     
-    // Renter-specific links
+    // Renter dashboard links
     const renterLinks = [
       { 
-        to: '/renter-dashboard', 
+        to: '/renter', 
         label: 'Dashboard', 
         icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
         mobileIcon: 'M4 6h16M4 12h16M4 18h16'
       },
       { 
-        to: '/browse-cars', 
+        to: '/renter/browse', 
         label: 'Browse Cars', 
         icon: 'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0',
-        mobileIcon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4'
+        mobileIcon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4',
+        exact: false
       },
       { 
-        to: '/my-bookings', 
+        to: '/renter/bookings', 
         label: 'My Bookings', 
         icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
-        mobileIcon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2'
+        mobileIcon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2',
+        exact: false
       },
       { 
-        to: '/profile', 
+        to: '/renter/profile', 
         label: 'My Profile', 
         icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
         mobileIcon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
       },
     ];
     
-    // Determine which links to show based on path or user role
-    if (location.pathname.startsWith('/owner-dashboard')) {
+    // Determine which links to show based on user role
+    if (hasRole('admin')) {
+      return adminLinks;
+    } else if (hasRole('owner')) {
       return ownerLinks;
-    } else if (location.pathname.startsWith('/renter-dashboard')) {
-      return renterLinks;
     } else {
-      return adminLinks; // Default to admin links
+      // Default to renter links for customers and any other roles
+      return renterLinks;
     }
   };
   

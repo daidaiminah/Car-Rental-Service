@@ -1,44 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import rentalService from '../services/rentalService.js';
+import { toast } from 'react-toastify';
+import { 
+  useGetAllRentalsQuery,
+  useDeleteRentalMutation
+} from '../store/features/rentals/rentalsApiSlice';
 
 const Rentals = () => {
-  const [rentals, setRentals] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // Fetch rentals from the API
-  useEffect(() => {
-    const fetchRentals = async () => {
-      try {
-        setLoading(true);
-        const data = await rentalService.getAllRentals();
-        
-        // Ensure we have a valid array before setting state
-        if (Array.isArray(data)) {
-          setRentals(data);
-          setError(null);
-        } else {
-          console.error('Invalid rentals data format:', data);
-          setError('Received invalid data format from server');
-          setRentals([]);
-        }
-      } catch (err) {
-        console.error('Failed to fetch rentals:', err);
-        setError('Failed to fetch rentals. Please try again.');
-        setRentals([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRentals();
-  }, []);
-
-
-
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  
+  // Use RTK Query hook to fetch rentals
+  const { 
+    data: rentals = [], 
+    isLoading, 
+    isError, 
+    error,
+    refetch 
+  } = useGetAllRentalsQuery();
+  
+  // Use RTK Query mutation hook for deleting rentals
+  const [deleteRental, { isLoading: isDeleting }] = useDeleteRentalMutation();
+
+
+
+
   
   // Filter rentals based on search term and status filter
   const filteredRentals = Array.isArray(rentals) ? rentals.filter(rental => {
@@ -64,12 +50,12 @@ const Rentals = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this rental?')) {
       try {
-        await rentalService.deleteRental(id);
-        // Update local state after successful API call
-        setRentals(rentals.filter(rental => rental.id !== id));
+        // Use RTK Query mutation to delete the rental
+        await deleteRental(id).unwrap();
+        toast.success('Rental deleted successfully');
       } catch (err) {
         console.error('Failed to delete rental:', err);
-        alert('Failed to delete rental. Please try again.');
+        toast.error(err.data?.message || err.error || 'Failed to delete rental. Please try again.');
       }
     }
   };
@@ -127,7 +113,7 @@ const Rentals = () => {
       </div>
 
       {/* Loading/Error State */}
-      {loading && (
+      {isLoading && (
         <div className="flex justify-center items-center h-64">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -136,29 +122,12 @@ const Rentals = () => {
         </div>
       )}
 
-      {error && (
+      {isError && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          <p>{error}</p>
+          <p>{error?.data?.message || error?.error || 'Failed to load rentals'}</p>
           <button 
             className="mt-2 text-primary hover:underline"
-            onClick={() => {
-              setError(null);
-              // Re-fetch rentals
-              const fetchRentals = async () => {
-                try {
-                  setLoading(true);
-                  const data = await rentalService.getAllRentals();
-                  setRentals(data);
-                  setError(null);
-                } catch (err) {
-                  console.error('Failed to fetch rentals:', err);
-                  setError('Failed to fetch rentals. Please try again.');
-                } finally {
-                  setLoading(false);
-                }
-              };
-              fetchRentals();
-            }}
+            onClick={() => refetch()}
           >
             Try Again
           </button>
@@ -166,7 +135,7 @@ const Rentals = () => {
       )}
 
       {/* Rentals List */}
-      {!loading && !error && <div className="card">
+      {!isLoading && !isError && <div className="card">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>

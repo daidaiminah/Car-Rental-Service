@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import Title from '../components/Title';
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
+import { useSelector, useDispatch } from "react-redux";
 import { FiPlus, FiArrowUpRight, FiUsers, FiCalendar, FiTruck } from "react-icons/fi";
 import CarCard from "../components/CarCard";
-import carService from "../services/carService";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useGetCarsQuery } from "../store/features/cars/carsApiSlice";
+import { useGetAllRentalsQuery } from "../store/features/rentals/rentalsApiSlice";
+import { selectCurrentUser, logOut } from "../store/features/auth/authSlice";
 
 // StatCard component for displaying statistics with icons and trends
 const StatCard = ({ title, value, icon: Icon, color, trend, change, loading = false }) => {
@@ -35,49 +38,48 @@ const StatCard = ({ title, value, icon: Icon, color, trend, change, loading = fa
 };
 
 const Dashboard = () => {
-  const [loading, setLoading] = useState(true);
-  const [recentCars, setRecentCars] = useState([]);
-  const [stats, setStats] = useState({
-    totalCars: 0,
-    availableCars: 0,
-    activeRentals: 0,
-    totalCustomers: 0,
-  });
-  const { currentUser, logout } = useAuth();
+  const currentUser = useSelector(selectCurrentUser);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
+  
+  // Use RTK Query hooks to fetch data
+  const { 
+    data: cars = [], 
+    isLoading: carsLoading,
+    isError: carsError,
+    error: carsErrorData
+  } = useGetCarsQuery({ limit: 6 });
+  
+  const { 
+    data: rentals = [],
+    isLoading: rentalsLoading,
+    isError: rentalsError,
+    error: rentalsErrorData
+  } = useGetAllRentalsQuery();
+  
+  // Calculate stats based on fetched data
+  const availableCars = cars.filter(car => car.status === 'available').length;
+  const activeRentals = rentals.filter(rental => rental.status === 'active').length;
+  
+  // Determine if any data is still loading
+  const loading = carsLoading || rentalsLoading;
+  
+  // Show errors in console
+  if (carsError) {
+    console.error('Error fetching cars:', carsErrorData);
+    toast.error('Failed to load cars data');
+  }
+  
+  if (rentalsError) {
+    console.error('Error fetching rentals:', rentalsErrorData);
+    toast.error('Failed to load rentals data');
+  }
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        
-        // Fetch recent cars (limited to 6 for the dashboard)
-        const cars = await carService.getAllCars({ limit: 6 });
-        setRecentCars(cars);
-        
-        // Update stats based on the fetched data
-        const availableCount = cars.filter(car => car.available).length;
-        setStats({
-          totalCars: cars.length,
-          availableCars: availableCount,
-          activeRentals: cars.length - availableCount, // Assuming non-available cars are rented
-          totalCustomers: 0, // This would come from a users API in a real app
-        });
-        
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        toast.error('Failed to load dashboard data');
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    fetchDashboardData();
-  }, []);
 
   const handleLogout = async () => {
     try {
-      await logout();
+      dispatch(logOut());
       navigate('/login');
     } catch (error) {
       toast.error('Failed to log out');
@@ -86,6 +88,7 @@ const Dashboard = () => {
 
   return (
       <div className="container mx-auto px-4 py-8">
+        <Title title="Admin Dashboard" />
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
@@ -101,42 +104,42 @@ const Dashboard = () => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatCard
-            title="Total Cars"
-            value={stats.totalCars}
-            icon={FiTruck}
-            color="text-blue-500"
-            trend="up"
-            change="+5% from last month"
-            loading={loading}
-          />
-          <StatCard
-            title="Available Cars"
-            value={stats.availableCars}
-            icon={FiCalendar}
-            color="text-green-500"
-            trend="up"
-            change="+12% from last week"
-            loading={loading}
-          />
-          <StatCard
-            title="Active Rentals"
-            value={stats.activeRentals}
-            icon={FiCalendar}
-            color="text-yellow-500"
-            trend="down"
-            change="-2 from yesterday"
-            loading={loading}
-          />
-          <StatCard
-            title="Total Customers"
-            value={stats.totalCustomers}
-            icon={FiUsers}
-            color="text-purple-500"
-            trend="up"
-            change="+8% from last month"
-            loading={loading}
-          />
+            <StatCard
+              title="Total Cars"
+              value={cars.length}
+              icon={FiTruck}
+              color="text-blue-500"
+              trend="up"
+              change="+5% from last month"
+              loading={loading}
+            />
+            <StatCard
+              title="Available Cars"
+              value={availableCars}
+              icon={FiCalendar}
+              color="text-green-500"
+              trend="up"
+              change="+12% from last week"
+              loading={loading}
+            />
+            <StatCard
+              title="Active Rentals"
+              value={activeRentals}
+              icon={FiCalendar}
+              color="text-yellow-500"
+              trend="down"
+              change="-2 from yesterday"
+              loading={loading}
+            />
+            <StatCard
+              title="Total Customers"
+              value={rentals.length > 0 ? new Set(rentals.map(rental => rental.renterId)).size : 0}
+              icon={FiUsers}
+              color="text-purple-500"
+              trend="up"
+              change="+8% from last month"
+              loading={loading}
+            />
         </div>
 
         {/* Recent Cars */}
@@ -157,7 +160,7 @@ const Dashboard = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {recentCars.map((car) => (
+                {cars.map((car) => (
                   <div key={car.id} className="bg-white rounded-lg shadow-md overflow-hidden">
                     <CarCard car={car} />
                     <div className="p-4 border-t border-gray-100">
@@ -179,3 +182,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+  

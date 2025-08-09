@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../store/authContext';
 import { FiMenu, FiX, FiSearch, FiUser, FiLogOut, FiChevronDown } from 'react-icons/fi';
 
 const Header = ({ onMenuClick }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth(); // isAuthenticated is a boolean
   const isAdminRoute = location.pathname.startsWith('/admin');
+  const isOwnerRoute = location.pathname.startsWith('/owner');
+  const isRenterRoute = location.pathname.startsWith('/renter');
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -39,6 +41,13 @@ const Header = ({ onMenuClick }) => {
       window.removeEventListener('popstate', handleRouteChange);
     };
   }, []);
+
+  // Get dashboard URL based on user role
+  const getDashboardUrl = () => {
+    if (user?.role === 'admin') return '/admin';
+    if (user?.role === 'owner') return '/owner';
+    return '/renter';
+  };
 
   // Toggle search on mobile
   const toggleSearch = () => {
@@ -101,25 +110,25 @@ const Header = ({ onMenuClick }) => {
       return (
         <>
           <Link
-            to="/cars"
+            to="/renter/browse"
             className="block px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
             onClick={onMenuClick}
           >
-            Cars
+            Browse Cars
           </Link>
           <Link
             to="/about"
             className="block px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
             onClick={onMenuClick}
           >
-            About
+            About Us
           </Link>
           <Link
             to="/contact"
             className="block px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
             onClick={onMenuClick}
           >
-            Contact
+            Contact Us
           </Link>
           
         </>
@@ -157,7 +166,10 @@ const Header = ({ onMenuClick }) => {
               </button>
               
               {/* Logo */}
-              <Link to={isAdminRoute ? '/admin' : '/'} className="ml-2 lg:ml-0">
+              <Link 
+                to={isAuthenticated ? getDashboardUrl() : '/'} 
+                className="ml-2 lg:ml-0"
+              >
                 <h1 className="text-xl font-bold text-primary whitespace-nowrap">
                   Whip In Time
                 </h1>
@@ -181,21 +193,57 @@ const Header = ({ onMenuClick }) => {
 
             {/* Right side - Navigation and user menu */}
             <div className="hidden md:flex items-center space-x-2">
-            {isAdminRoute ? (
-              // Admin navigation
+            {isAdminRoute || isOwnerRoute || isRenterRoute ? (
+              // Dashboard navigation
               <>
-                <Link
-                  to="/admin/customers"
-                  className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                >
-                  Customers
-                </Link>
-                <Link
-                  to="/admin/rentals"
-                  className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                >
-                  Rentals
-                </Link>
+                {isAdminRoute && (
+                  <>
+                    <Link
+                      to="/admin/customers"
+                      className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    >
+                      Customers
+                    </Link>
+                    <Link
+                      to="/admin/rentals"
+                      className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    >
+                      Rentals
+                    </Link>
+                  </>
+                )}
+                {isOwnerRoute && (
+                  <>
+                    <Link
+                      to="/owner/cars"
+                      className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    >
+                      My Cars
+                    </Link>
+                    <Link
+                      to="/owner/rentals"
+                      className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    >
+                      Rentals
+                    </Link>
+                  </>
+                )}
+                {isRenterRoute && (
+                  <>
+                    <Link
+                      to="/renter/browse"
+                      className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    >
+                      Browse Cars
+                    </Link>
+                    <Link
+                      to="/renter/bookings"
+                      className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    >
+                      My Bookings
+                    </Link>
+                  </>
+                )}
                 <Link
                   to="/"
                   className="px-3 py-2 rounded-md text-sm font-medium text-white bg-primary hover:bg-primary-dark"
@@ -284,7 +332,7 @@ const Header = ({ onMenuClick }) => {
               {isProfileOpen && (
                 <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
                   <div className="py-1" role="menu" aria-orientation="vertical">
-                    {isAuthenticated() ? (
+                    {isAuthenticated ? (
                       <>
                         <Link
                           to="/profile"
