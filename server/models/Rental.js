@@ -11,7 +11,7 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-          model: 'cars',
+          model: 'Cars',
           key: 'id'
         }
       },
@@ -19,7 +19,7 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-          model: 'users',
+          model: 'Users',
           key: 'id'
         }
       },
@@ -80,6 +80,8 @@ export default (sequelize, DataTypes) => {
     },
     {
       timestamps: true,
+      tableName: 'Rentals',
+      freezeTableName: true,
     }
   );
 

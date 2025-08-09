@@ -49,6 +49,15 @@ export default (sequelize, DataTypes) => {
       imageUrl: {
         type: DataTypes.STRING,
       },
+      ownerId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'Users',
+          key: 'id'
+        },
+        onDelete: 'CASCADE'
+      },
       location: {
         type: DataTypes.STRING,
       },
@@ -59,6 +68,8 @@ export default (sequelize, DataTypes) => {
     },
     {
       timestamps: true,
+      tableName: 'Cars',
+      freezeTableName: true,
     }
   );
 
@@ -66,6 +77,10 @@ export default (sequelize, DataTypes) => {
     Car.hasMany(models.Rental, {
       foreignKey: "carId",
       as: "rentals",
+    });
+    Car.belongsTo(models.User, {
+      foreignKey: "ownerId",
+      as: "owner",
     });
   };
 

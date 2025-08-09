@@ -291,14 +291,42 @@ export const getRentalById = async (req, res) => {
 };
 
 // Delete rental (cancel)
-// Get rentals for cars owned by the current user
+// Get rentals for cars owned by a specific owner
+// Can be called with JWT (current user) or with ownerId parameter
 export const getOwnerRentals = async (req, res) => {
   try {
-    const ownerId = req.user.id;
+    console.log('=== GET OWNER RENTALS ===');
+    
+    // Get ownerId from URL params or JWT
+    const ownerId = req.params.ownerId || (req.user && req.user.id);
+    
+    console.log('Owner ID:', ownerId, 'Type:', typeof ownerId);
+    
+    if (!ownerId) {
+      const error = new Error('Owner ID is required');
+      console.error('Error:', error.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Owner ID is required',
+        details: 'No owner ID provided in URL params or JWT token'
+      });
+    }
+    
+    // Convert ownerId to number if it's a string
+    const numericOwnerId = Number(ownerId);
+    if (isNaN(numericOwnerId)) {
+      const error = new Error('Invalid owner ID format');
+      console.error('Error:', error.message, { ownerId });
+      return res.status(400).json({
+        success: false,
+        message: 'Owner ID must be a number',
+        received: ownerId
+      });
+    }
     
     // First, get all cars owned by this user
     const ownerCars = await Car.findAll({
-      where: { ownerId }
+      where: { owner_id: numericOwnerId }
     });
     
     if (!ownerCars || ownerCars.length === 0) {

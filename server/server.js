@@ -9,7 +9,7 @@ import rentalRoutes from "./routers/rentalRoutes.js";
 import cors from 'cors';
 import { createApiUser } from "./utils/momo.js";
 import { generateApiKey } from "./utils/momo.js";
-import { testConnection } from "./config/db.js";
+import { testConnection } from "./config/database.js";
 import { getAccessToken } from "./utils/momo.js";
 
 const app = express();
@@ -23,9 +23,36 @@ const corsOptions = {
   optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 };
 
-app.use(cors(corsOptions)); // <-- Add this
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(cors(corsOptions));
+
+// Increase payload size limit to 50MB
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Serve static files from the public directory
+import path from 'path';
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Ensure uploads directory exists
+import fs from 'fs';
+const uploadsDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Serve static files
+console.log('Serving static files from:', path.join(__dirname, 'public'));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Explicitly serve uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads'), {
+  setHeaders: (res, path) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  }
+}));
 
 
 app.get("/", (req, res) => {

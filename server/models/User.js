@@ -41,9 +41,10 @@ export default (sequelize, DataTypes) => {
       },
       {
         timestamps: true,
+        tableName: 'Users',
+        freezeTableName: true
       }
     );
   
-    return User; // ✅ Now the model is returned correctly
+    return User; 
   };
-  

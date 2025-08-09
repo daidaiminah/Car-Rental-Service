@@ -23,6 +23,8 @@ export default (sequelize, DataTypes) => {
     },
     {
       timestamps: true,
+      tableName: 'Customers',
+      freezeTableName: true,
     }
   );
 

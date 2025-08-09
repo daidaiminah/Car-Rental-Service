@@ -5,6 +5,28 @@ const Car = db.Car;
 // Create a new car
 export const createCar = async (req, res) => {
   try {
+    console.log('=== CREATE CAR REQUEST RECEIVED ===');
+    console.log('Request Headers:', req.headers);
+    console.log('Request Body:', req.body);
+    console.log('Request Files:', req.file || 'No files uploaded');
+    
+    // Log all request headers for debugging
+    console.log('=== REQUEST HEADERS ===');
+    Object.entries(req.headers).forEach(([key, value]) => {
+      console.log(`${key}: ${value}`);
+    });
+    
+    // Get the file path from the uploaded file (if any)
+    let imageUrl = req.body?.imageUrl; // Default to provided URL if any
+    
+    if (req.file) {
+      // Construct full URL for the uploaded image
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
+    }
+    
+    console.log('Processed imageUrl:', imageUrl);
+
     const {
       make,
       model,
@@ -15,9 +37,10 @@ export const createCar = async (req, res) => {
       seats,
       fuelType,
       description,
-      imageUrl,
       rating,
-      location
+      location,
+      ownerId,
+      owner
     } = req.body;
     
     // Validate required fields
@@ -32,17 +55,19 @@ export const createCar = async (req, res) => {
     const newCar = await Car.create({
       make,
       model,
-      year,
-      rentalPricePerDay,
+      year: parseInt(year, 10),
+      rentalPricePerDay: parseFloat(rentalPricePerDay),
       isAvailable: true,
       type,
       transmission,
-      seats,
+      seats: parseInt(seats, 10),
       fuelType,
       description: description || 'This is a well-maintained vehicle in excellent condition, ready for your next adventure.',
-      imageUrl,
-      rating: rating || 4.5,
-      location: location || 'Not specified'
+      imageUrl: imageUrl || '/uploads/default-car.jpg',
+      rating: rating ? parseFloat(rating) : 4.5,
+      location: location || 'Not specified',
+      ownerId: ownerId || null,
+      owner: owner || 'Unknown'
     });
 
     return res.status(201).json({
@@ -164,8 +189,8 @@ export const updateCar = async (req, res) => {
     console.error(error);
     return res.status(500).json({
       success: false,
-      message: "Failed to update car",
-      error: error.message
+      message: 'Failed to update car',
+      error: error.message,
     });
   }
 };
@@ -197,6 +222,85 @@ export const deleteCar = async (req, res) => {
       success: false,
       message: "Failed to delete car",
       error: error.message
+    });
+  }
+};
+
+// Get cars by owner ID
+export const getCarsByOwner = async (req, res) => {
+  try {
+    const { ownerId } = req.params;
+    
+    console.log('=== GET CARS BY OWNER ===');
+    console.log('Owner ID:', ownerId, 'Type:', typeof ownerId);
+    
+    if (!ownerId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Owner ID is required'
+      });
+    }
+    
+    // Convert ownerId to number if it's a string
+    const numericOwnerId = Number(ownerId);
+    if (isNaN(numericOwnerId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Owner ID must be a number'
+      });
+    }
+    
+    console.log('Querying cars for owner ID:', numericOwnerId);
+    
+    const cars = await Car.findAll({
+      where: { ownerId: numericOwnerId },
+      order: [['createdAt', 'DESC']]
+    });
+    
+    console.log('Found cars:', cars.length);
+    
+    return res.status(200).json({
+      success: true,
+      count: cars.length,
+      data: cars
+    });
+  } catch (error) {
+    console.error('Error in getCarsByOwner:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to get cars by owner',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+};
+
+// Get featured cars
+export const getFeaturedCars = async (req, res) => {
+  try {
+    // Get the 6 most recently added available cars
+    const featuredCars = await Car.findAll({
+      where: { isAvailable: true },
+      order: [['createdAt', 'DESC']],
+      limit: 6
+    });
+    
+    return res.status(200).json({
+      success: true,
+      count: featuredCars.length,
+      data: featuredCars
+    });
+  } catch (error) {
+    console.error('Error in getFeaturedCars:', error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to retrieve featured cars",
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
 };
