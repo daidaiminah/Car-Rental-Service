@@ -104,7 +104,7 @@ const startServer = async () => {
     console.log('Database connection has been established successfully.');
     
     // Sync all models - in production, use migrations instead of force: true
-    await db.sequelize.sync({ force: process.env.NODE_ENV === 'development' });
+    await db.sequelize.sync({ force: process.env.NODE_ENV === 'production' });
     console.log('Database synchronized.');
     // In development, you might want to use { force: true } to reset the database
     // In production, use { alter: true } or just sync()

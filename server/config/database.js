@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Validate required environment variables
-const requiredEnvVars = ['DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT'];
+const requiredEnvVars = ['PDB_NAME', 'PDB_USER', 'PDB_PASSWORD', 'PDB_HOST', 'PDB_PORT'];
 const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingVars.length > 0) {
@@ -13,13 +13,13 @@ if (missingVars.length > 0) {
 
 // Database connection configuration
 const dbConfig = {
-  database: process.env.DB_NAME,
-  username: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  host: process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT, 10) || 5432,
+  database: process.env.PDB_NAME,
+  username: process.env.PDB_USER,
+  password: process.env.PDB_PASSWORD,
+  host: process.env.PDB_HOST,
+  port: parseInt(process.env.PDB_PORT, 10) || 5432,
   dialect: 'postgres',
-  logging: process.env.NODE_ENV === 'development' ? console.log : false,
+  logging: process.env.NODE_ENV === 'production' ? console.log : false,
   define: {
     timestamps: true,
     underscored: true,
