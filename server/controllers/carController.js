@@ -275,7 +275,7 @@ export const getCarsByOwner = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Failed to get cars by owner',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: process.env.NODE_ENV === 'production' ? error.message : 'Internal server error'
     });
   }
 };
@@ -300,7 +300,7 @@ export const getFeaturedCars = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to retrieve featured cars",
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: process.env.NODE_ENV === 'production' ? error.message : 'Internal server error'
     });
   }
 };
