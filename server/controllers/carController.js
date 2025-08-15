@@ -23,6 +23,7 @@ export const createCar = async (req, res) => {
       // Construct full URL for the uploaded image
       const baseUrl = `${req.protocol}://${req.get('host')}`;
       imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
+      
     }
     
     console.log('Processed imageUrl:', imageUrl);

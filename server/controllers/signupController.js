@@ -97,7 +97,7 @@ export const signupController = async (req, res) => {
         // Handle other errors
         res.status(500).json({ 
             message: 'An error occurred during registration',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            error: process.env.NODE_ENV === 'production' ? error.message : undefined
         });
     }
 };

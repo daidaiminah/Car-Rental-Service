@@ -152,7 +152,7 @@ export const getMyRentals = async (req, res) => {
         { 
           model: Car, 
           as: "car",
-          attributes: ['id', 'make', 'model', 'year', 'image', 'type']
+          attributes: ['id', 'make', 'model', 'year', 'imageUrl', 'type']
         }
       ],
       order: [['createdAt', 'DESC']]
@@ -226,7 +226,7 @@ export const getAvailableCars = async (req, res) => {
         },
         isAvailable: true
       },
-      attributes: ['id', 'make', 'model', 'year', 'type', 'rentalPricePerDay', 'image', 'seats', 'transmission', 'fuelType']
+      attributes: ['id', 'make', 'model', 'year', 'type', 'rentalPricePerDay', 'imageUrl', 'seats', 'transmission', 'fuelType']
     });
 
     return res.status(200).json({
@@ -259,7 +259,7 @@ export const getRentalById = async (req, res) => {
         { 
           model: Car, 
           as: "car",
-          attributes: ['id', 'make', 'model', 'year', 'image', 'type']
+          attributes: ['id', 'make', 'model', 'year', 'imageUrl', 'type']
         },
         {
           model: User,
@@ -326,7 +326,7 @@ export const getOwnerRentals = async (req, res) => {
     
     // First, get all cars owned by this user
     const ownerCars = await Car.findAll({
-      where: { owner_id: numericOwnerId }
+      where: { ownerId: numericOwnerId }
     });
     
     if (!ownerCars || ownerCars.length === 0) {
@@ -351,7 +351,7 @@ export const getOwnerRentals = async (req, res) => {
         { 
           model: Car, 
           as: "car",
-          attributes: ['id', 'make', 'model', 'year', 'image', 'type', 'ownerId']
+          attributes: ['id', 'make', 'model', 'year', 'imageUrl', 'type', 'ownerId']
         },
         {
           model: User,
