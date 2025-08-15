@@ -50,22 +50,61 @@ export const authApiSlice = createApi({
         method: 'POST',
         body: userData,
       }),
-      transformResponse: (response) => {
-        // The backend returns the response directly, not wrapped in a data property
-        if (response && response.token) {
+      transformResponse: (response, meta) => {
+        console.log('Signup response:', { response, status: meta?.response?.status });
+        
+        // Check if response is valid
+        if (!response) {
+          throw new Error('No response received from server');
+        }
+        
+        // The backend returns the response directly
+        if (response.token) {
           return {
             ...response,  // Spread all user data
             token: response.token
           };
         }
-        return response;
+        
+        // If we get here, the response doesn't contain a token
+        throw new Error('Invalid response format: missing token');
       },
-      transformErrorResponse: (response) => {
-        // Transform error response to be more descriptive
+      transformErrorResponse: (response, meta) => {
+        console.error('Signup error response:', { 
+          status: response?.status, 
+          data: response?.data,
+          originalStatus: meta?.response?.status,
+          response: meta?.response
+        });
+        
+        // Handle different types of errors
+        let errorMessage = 'An error occurred during signup';
+        let validationErrors = [];
+        
+        if (response?.data) {
+          // Handle validation errors
+          if (Array.isArray(response.data.errors)) {
+            validationErrors = response.data.errors;
+            errorMessage = 'Please fix the following errors:';
+          } 
+          // Handle single error message
+          else if (response.data.message) {
+            errorMessage = response.data.message;
+          }
+        } 
+        // Handle network errors
+        else if (response?.status === 'FETCH_ERROR') {
+          errorMessage = 'Unable to connect to the server. Please check your internet connection.';
+        }
+        
         return {
-          status: response.status,
-          data: response.data,
-          message: response.data?.message || 'An error occurred during signup',
+          status: response?.status || 500,
+          message: errorMessage,
+          errors: validationErrors,
+          ...(process.env.NODE_ENV !== 'production' && {
+            originalError: response?.data,
+            stack: new Error().stack
+          })
         };
       },
     }),
