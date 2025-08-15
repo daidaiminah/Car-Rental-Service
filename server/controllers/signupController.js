@@ -3,16 +3,20 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 export const signupController = async (req, res) => {
+    console.log('=== SIGNUP REQUEST ===');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    console.log('Environment:', process.env.NODE_ENV);
+    
     try {
-        console.log('Signup request received:', { body: req.body });
-        
         const { name, email, password, role } = req.body;
 
         // Validate required fields
         if (!name || !email || !password) {
-            console.error('Missing required fields:', { name, email, password: !!password });
+            const errorMessage = 'Missing required fields';
+            console.error(errorMessage, { name, email, password: !!password });
             return res.status(400).json({ 
-                message: 'All fields are required',
+                success: false,
+                message: errorMessage,
                 required: ['name', 'email', 'password']
             });
         }
@@ -75,29 +79,51 @@ export const signupController = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Signup error:', {
-            message: error.message,
-            name: error.name,
-            stack: error.stack,
-            ...error
-        });
+        console.error('=== SIGNUP ERROR ===');
+        console.error('Error:', error.message);
+        console.error('Error name:', error.name);
+        console.error('Error code:', error.code);
+        console.error('Error stack:', error.stack);
+        console.error('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
         
         // Handle specific Sequelize validation errors
         if (error.name === 'SequelizeValidationError' || error.name === 'SequelizeUniqueConstraintError') {
             const errors = error.errors.map(err => ({
                 field: err.path,
-                message: err.message
+                message: err.message,
+                type: err.type,
+                validatorKey: err.validatorKey,
+                value: err.value
             }));
+            
+            console.error('Validation errors:', errors);
+            
             return res.status(400).json({ 
+                success: false,
                 message: 'Validation error',
                 errors 
             });
         }
 
+        // Handle database connection errors
+        if (error.name === 'SequelizeConnectionError') {
+            console.error('Database connection error:', error);
+            return res.status(503).json({
+                success: false,
+                message: 'Unable to connect to the database',
+                error: 'Database connection error'
+            });
+        }
+
         // Handle other errors
+        const errorMessage = process.env.NODE_ENV === 'production' 
+            ? 'An error occurred during registration' 
+            : error.message;
+            
         res.status(500).json({ 
-            message: 'An error occurred during registration',
-            error: process.env.NODE_ENV === 'production' ? error.message : undefined
+            success: false,
+            message: errorMessage,
+            ...(process.env.NODE_ENV !== 'production' && { error: error.message, stack: error.stack })
         });
     }
 };
