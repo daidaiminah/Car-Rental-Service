@@ -349,6 +349,15 @@ const Header = ({ onMenuClick }) => {
                         >
                           Sign out
                         </button>
+                        <Link 
+                          to={isAuthenticated ? getDashboardUrl() : '/'} 
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          <h1 className=" text-primary whitespace-nowrap">
+                            My Dashboard
+                          </h1>
+                        </Link>
+                        
                       </>
                     ) : (
                       <>

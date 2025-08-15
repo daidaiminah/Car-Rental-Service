@@ -73,6 +73,9 @@ const Home = () => {
     toast.info('Search functionality will be implemented soon!');
   };
 
+  console.log(`Debugging car: ${JSON.stringify(featuredCars, null, 2)}`);
+
+
   // Filter cars based on local filters
   const filteredCars = featuredCars.filter(car => {
     const searchTermLower = (searchTerm || '').toLowerCase();

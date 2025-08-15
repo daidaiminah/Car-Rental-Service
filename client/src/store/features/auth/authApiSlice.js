@@ -1,20 +1,10 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
-// Helper function to get the base URL based on environment
-const getBaseUrl = () => {
-  // In development, use the local server
-  if (process.env.NODE_ENV === 'development') {
-    return import.meta.env.VITE_API_BASE_URL;
-  }
-  // In production, use your production URL
-  return 'https://whip-in-time-server.onrender.com/api';
-};
-
 // Create the auth API slice
 export const authApiSlice = createApi({
   reducerPath: 'authApi',
   baseQuery: fetchBaseQuery({ 
-    baseUrl: getBaseUrl(),
+    baseUrl: import.meta.env.VITE_API_BASE_URL,
     prepareHeaders: (headers, { getState }) => {
       // Get token from localStorage
       const token = localStorage.getItem('token');

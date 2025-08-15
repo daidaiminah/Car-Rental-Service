@@ -28,15 +28,44 @@ const MyCars = () => {
   // Use RTK Query mutation hook for deleting cars
   const [deleteCar, { isLoading: isDeleting }] = useDeleteCarMutation();
   
-  const handleDeleteCar = async (carId) => {
-    if (window.confirm('Are you sure you want to delete this car?')) {
-      try {
-        await deleteCar(carId).unwrap();
-        toast.success('Car deleted successfully');
-      } catch (error) {
-        console.error('Error deleting car:', error);
-        toast.error(error.data?.message || error.error || 'Failed to delete car. Please try again.');
+  const handleDeleteCar = (carId) => {
+    toast.info(
+      <div>
+        <p>Are you sure you want to delete this car?</p>
+        <div className="flex justify-between mt-2">
+          <button 
+            className="px-4 py-1 bg-primary-dark text-white rounded hover:bg-primary"
+            onClick={() => {
+              toast.dismiss();
+              deleteCarHandler(carId);
+            }}
+          >
+            Delete
+          </button>
+          <button 
+            className="px-4 py-1 bg-gray-300 rounded hover:bg-gray-400"
+            onClick={() => toast.dismiss()}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>,
+      {
+        autoClose: false,
+        closeButton: false,
+        closeOnClick: false,
+        draggable: false,
       }
+    );
+  };
+
+  const deleteCarHandler = async (carId) => {
+    try {
+      await deleteCar(carId).unwrap();
+      toast.success('Car deleted successfully');
+    } catch (error) {
+      console.error('Error deleting car:', error);
+      toast.error(error.data?.message || error.error || 'Failed to delete car. Please try again.');
     }
   };
 
@@ -53,7 +82,7 @@ const MyCars = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-secondary-dark">My Cars</h1>
         <Link 
-          to="/add-car" 
+          to="/owner/add_cars" 
           className="btn-primary flex items-center gap-2"
         >
           <span>Add New Car</span>
@@ -66,7 +95,7 @@ const MyCars = () => {
           <FaCar className="mx-auto text-5xl text-gray-300 mb-4" />
           <h2 className="text-xl font-semibold text-secondary-dark mb-2">No Cars Yet</h2>
           <p className="text-secondary mb-4">You haven't added any cars to your fleet yet.</p>
-          <Link to="/add-car" className="btn-primary inline-block">
+          <Link to="/owner/add_cars" className="btn-primary inline-block">
             Add Your First Car
           </Link>
         </div>
@@ -76,7 +105,7 @@ const MyCars = () => {
             <div key={car.id} className="bg-white rounded-lg shadow-md overflow-hidden">
               <div className="relative h-48">
                 <img 
-                  src={car.image || 'https://via.placeholder.com/300x200?text=No+Image'} 
+                  src={car.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image'} 
                   alt={`${car.make} ${car.model}`}
                   className="w-full h-full object-cover"
                 />
@@ -106,7 +135,7 @@ const MyCars = () => {
                 <h3 className="text-lg font-semibold text-secondary-dark">{car.make} {car.model}</h3>
                 <p className="text-secondary text-sm">{car.year} • {car.transmission} • {car.fuelType}</p>
                 <div className="mt-2 flex justify-between items-center">
-                  <span className="text-primary font-bold">${car.pricePerDay}/day</span>
+                  <span className="text-primary font-bold">${car.rentalPricePerDay}/day</span>
                   <Link to={`/car-details/${car.id}`} className="text-primary hover:underline text-sm">
                     View Details
                   </Link>
