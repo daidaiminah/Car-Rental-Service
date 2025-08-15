@@ -51,10 +51,22 @@ export const authApiSlice = createApi({
         body: userData,
       }),
       transformResponse: (response) => {
-        if (response && response.data) {
-          return { ...response.data, token: response.token };
+        // The backend returns the response directly, not wrapped in a data property
+        if (response && response.token) {
+          return {
+            ...response,  // Spread all user data
+            token: response.token
+          };
         }
         return response;
+      },
+      transformErrorResponse: (response) => {
+        // Transform error response to be more descriptive
+        return {
+          status: response.status,
+          data: response.data,
+          message: response.data?.message || 'An error occurred during signup',
+        };
       },
     }),
     getCurrentUser: builder.query({
