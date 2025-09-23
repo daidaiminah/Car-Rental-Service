@@ -58,11 +58,8 @@ const Login = () => {
       const role = userTypeToRole[userType];
       const loginData = { ...formData, role };
       
-      console.log('Attempting login with:', loginData);
-      
       // Call the login mutation from the store
       const response = await login(loginData).unwrap();
-      console.log('Login response:', response);
       
       // The response should include both token and user data
       if (response && response.token) {
@@ -82,8 +79,6 @@ const Login = () => {
           role: response.role || 'customer'
         };
         
-        console.log('Dispatching credentials with:', { user: userData, token: response.token });
-        
         // Store the token in localStorage
         localStorage.setItem('token', response.token);
         
@@ -102,9 +97,7 @@ const Login = () => {
         } else if (userData.role === 'customer') {
           redirectPath = '/renter';
         }
-        
-        console.log('Navigating to:', redirectPath);
-        
+
         // Use the location state for redirect if available, otherwise use role-based path
         const from = location.state?.from?.pathname || redirectPath;
         
@@ -116,13 +109,11 @@ const Login = () => {
         // If we get here, the token is missing from the response
         toast.dismiss(toastId);
         toast.error('Invalid response from server. Please try again.');
-        console.error('Login failed: Token missing from response');
       }
     } catch (err) {
       toast.dismiss(toastId);
       const errorMessage = err.data?.message || err.error || 'Login failed. Please check your credentials.';
       toast.error(errorMessage);
-      console.error('Login error:', err);
     }
   };
 

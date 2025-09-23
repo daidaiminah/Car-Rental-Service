@@ -15,13 +15,17 @@ const MyBookings = () => {
 
   // Use RTK Query hook to fetch bookings
   const { 
-    data: bookings = [], 
+    data: response = { data: [] }, 
     isLoading: loading,
     isError,
-    error
+    error,
+    refetch: refetchBookings
   } = useGetRentalsByRenterIdQuery(user?.id, {
     skip: !user?.id
   });
+
+  // Extract bookings from response (handle both direct array and nested data property)
+  const bookings = Array.isArray(response) ? response : (response?.data || []);
 
   // Use RTK Query mutation to update rental status to cancelled
   const [updateRental, { isLoading: isCancelling }] = useUpdateRentalMutation();
@@ -156,7 +160,7 @@ const MyBookings = () => {
                     <div className="h-20 w-20 flex-shrink-0 mr-4">
                       <img 
                         className="h-20 w-20 rounded-md object-cover" 
-                        src={booking.car?.image || 'https://via.placeholder.com/80?text=Car'} 
+                        src={booking.car?.imageUrl || 'https://via.placeholder.com/80?text=Car'} 
                         alt={booking.car?.make} 
                       />
                     </div>
@@ -175,7 +179,7 @@ const MyBookings = () => {
                   <div className="flex flex-col items-end">
                     {getStatusBadge(booking)}
                     <div className="mt-2 text-lg font-bold text-primary">
-                      ${booking.totalAmount}
+                      ${booking.totalCost}
                     </div>
                     <div className="text-secondary text-sm">
                       {booking.totalDays} {booking.totalDays === 1 ? 'day' : 'days'}

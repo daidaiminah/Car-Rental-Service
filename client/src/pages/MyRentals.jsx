@@ -25,17 +25,23 @@ const MyRentals = () => {
     console.error('Error fetching rentals:', error);
   }
 
-  const filteredRentals = rentals.filter(rental => {
-    const now = new Date();
-    const endDate = new Date(rental.endDate);
-    
-    if (filter === 'active') {
-      return endDate >= now;
-    } else if (filter === 'completed') {
-      return endDate < now;
+  // Ensure rentals is an array before filtering
+  const filteredRentals = Array.isArray(rentals) ? rentals.filter(rental => {
+    try {
+      const now = new Date();
+      const endDate = new Date(rental.endDate);
+      
+      if (filter === 'active') {
+        return endDate >= now;
+      } else if (filter === 'completed') {
+        return endDate < now;
+      }
+      return true; // 'all' filter
+    } catch (error) {
+      console.error('Error processing rental:', rental, error);
+      return false;
     }
-    return true; // 'all' filter
-  });
+  }) : [];
 
   const getStatusBadge = (rental) => {
     const now = new Date();
@@ -183,3 +189,5 @@ const MyRentals = () => {
 };
 
 export default MyRentals;
+
+ 

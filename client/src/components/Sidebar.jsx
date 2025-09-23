@@ -1,126 +1,72 @@
-import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import React, { useEffect, useRef } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/authContext';
+import { getNavigationConfig } from '../config/navigation';
 
 const Sidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, hasRole } = useAuth();
+  const navRef = useRef(null);
+  const firstNavItemRef = useRef(null);
+  const lastNavItemRef = useRef(null);
   
-  // Navigation link definitions for different user roles
-  const getNavLinks = () => {
-    // Admin dashboard links
-    const adminLinks = [
-      { 
-        to: '/admin', 
-        label: 'Dashboard', 
-        icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
-        mobileIcon: 'M4 6h16M4 12h16M4 18h16'
-      },
-      { 
-        to: '/admin/customers', 
-        label: 'Customers', 
-        icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z',
-        mobileIcon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
-      },
-      { 
-        to: '/admin/cars', 
-        label: 'Cars', 
-        icon: 'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0',
-        mobileIcon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4',
-        exact: false
-      },
-      { 
-        to: '/admin/rentals', 
-        label: 'Rentals', 
-        icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
-        mobileIcon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2',
-        exact: false
-      },
-    ];
-    
-    // Owner dashboard links
-    const ownerLinks = [
-      { 
-        to: '/owner', 
-        label: 'Dashboard', 
-        icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
-        mobileIcon: 'M4 6h16M4 12h16M4 18h16'
-      },
-      { 
-        to: '/owner/add_cars', 
-        label: 'Add New Car', 
-        icon: 'M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z',
-        mobileIcon: 'M12 4v16m8-8H4'
-      },
-      { 
-        to: '/owner/cars', 
-        label: 'My Cars', 
-        icon: 'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0',
-        mobileIcon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4',
-        exact: false
-      },
-      { 
-        to: '/owner/rentals', 
-        label: 'Rental History', 
-        icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
-        mobileIcon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2',
-        exact: false
-      },
-      { 
-        to: '/owner/profile', 
-        label: 'My Profile', 
-        icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
-        mobileIcon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
-      }
-    ];
-    
-    // Renter dashboard links
-    const renterLinks = [
-      { 
-        to: '/renter', 
-        label: 'Dashboard', 
-        icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
-        mobileIcon: 'M4 6h16M4 12h16M4 18h16'
-      },
-      { 
-        to: '/renter/browse', 
-        label: 'Browse Cars', 
-        icon: 'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0',
-        mobileIcon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4',
-        exact: false
-      },
-      { 
-        to: '/renter/bookings', 
-        label: 'My Bookings', 
-        icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
-        mobileIcon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2',
-        exact: false
-      },
-      { 
-        to: '/renter/profile', 
-        label: 'My Profile', 
-        icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
-        mobileIcon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
-      },
-    ];
-    
-    // Determine which links to show based on user role
-    if (hasRole('admin')) {
-      return adminLinks;
-    } else if (hasRole('owner')) {
-      return ownerLinks;
-    } else {
-      // Default to renter links for customers and any other roles
-      return renterLinks;
+  // Handle keyboard navigation
+  const handleKeyDown = (e, index, navItems) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const nextIndex = (index + 1) % navItems.length;
+      navItems[nextIndex]?.focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prevIndex = (index - 1 + navItems.length) % navItems.length;
+      navItems[prevIndex]?.focus();
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      navItems[0]?.focus();
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      navItems[navItems.length - 1]?.focus();
     }
   };
   
-  const navLinks = getNavLinks();
+  // Focus management for the sidebar
+  useEffect(() => {
+    const handleFocusIn = (e) => {
+      const navItems = Array.from(navRef.current?.querySelectorAll('a[role="menuitem"]') || []);
+      
+      // If focus is on the first item and user presses Shift+Tab, move focus to the last item
+      if (e.target === firstNavItemRef.current && e.shiftKey && document.activeElement === document.body) {
+        e.preventDefault();
+        lastNavItemRef.current?.focus();
+      }
+    };
 
+    document.addEventListener('focusin', handleFocusIn);
+    return () => document.removeEventListener('focusin', handleFocusIn);
+  }, []);
+  
+  // Get navigation links based on user role
+  const getNavLinks = () => {
+    if (hasRole('admin')) {
+      return getNavigationConfig('admin');
+    } else if (hasRole('owner')) {
+      return getNavigationConfig('owner');
+    } else {
+      // Default to renter links for customers and any other roles
+      return getNavigationConfig('renter');
+    }
+  };
   // Close sidebar when route changes (handled by parent)
 
+  // Get navigation links
+  const navLinks = getNavLinks();
+  
   return (
-    <aside className="h-screen bg-secondary-dark text-white overflow-y-auto">
+    <aside 
+      className="h-screen bg-secondary-dark text-white overflow-y-auto"
+      aria-label="Main navigation"
+    >
       <div className="p-4 h-full flex flex-col">
         <div className="py-4 px-2 lg:py-8 lg:px-4">
           <h2 className="text-xl lg:text-2xl font-bold text-white truncate">
@@ -128,43 +74,84 @@ const Sidebar = () => {
           </h2>
         </div>
 
-        <nav className="flex-1 mt-2">
-          <ul className="space-y-1">
-            {navLinks.map((link) => {
+        <nav 
+          className="flex-1 mt-2" 
+          ref={navRef}
+          role="navigation"
+          aria-label="Main menu"
+        >
+          <ul 
+            className="space-y-1" 
+            role="menubar" 
+            aria-orientation="vertical"
+          >
+            {navLinks.map((link, index) => {
               const isActive = link.exact === false 
                 ? location.pathname.startsWith(link.to)
                 : location.pathname === link.to;
+              
+              // Set refs for first and last items for keyboard navigation
+              const refProps = {};
+              if (index === 0) refProps.ref = firstNavItemRef;
+              if (index === navLinks.length - 1) refProps.ref = lastNavItemRef;
                 
               return (
-                <li key={link.to}>
+                <li 
+                  key={link.to} 
+                  role="none"
+                >
                   <NavLink
                     to={link.to}
-                    className={`group flex items-center px-2 py-3 lg:px-4 lg:py-3 rounded-lg transition-colors ${
+                    role="menuitem"
+                    tabIndex={index === 0 ? 0 : -1}
+                    onKeyDown={(e) => {
+                      const menuItems = Array.from(
+                        document.querySelectorAll('a[role="menuitem"]')
+                      );
+                      handleKeyDown(e, index, menuItems);
+                      
+                      // Handle Enter and Space key for navigation
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigate(link.to);
+                      }
+                    }}
+                    className={`group flex items-center px-2 py-3 lg:px-4 lg:py-3 rounded-lg transition-colors outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-secondary-dark focus:ring-white ${
                       isActive
                         ? 'bg-primary text-white'
-                        : 'text-gray-300 hover:bg-secondary hover:text-white'
+                        : 'text-gray-300 hover:bg-secondary hover:text-white focus:bg-secondary focus:text-white'
                     }`}
+                    aria-current={isActive ? 'page' : undefined}
+                    {...refProps}
                   >
                     <span className="relative flex items-center">
-                      <svg
-                        className="w-5 h-5 lg:mr-3"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
+                      <span 
+                        className="w-5 h-5 lg:mr-3 flex items-center justify-center"
+                        aria-hidden="true"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d={link.icon}
-                        />
-                      </svg>
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d={link.icon}
+                          />
+                        </svg>
+                      </span>
                       <span className="hidden lg:inline text-sm font-medium">
                         {link.label}
                       </span>
                       {/* Mobile tooltip */}
-                      <span className="lg:hidden absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none transition-opacity">
+                      <span 
+                        className="lg:hidden absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none transition-opacity"
+                        role="tooltip"
+                      >
                         {link.label}
                       </span>
                     </span>
@@ -176,39 +163,137 @@ const Sidebar = () => {
         </nav>
 
         {/* Mobile bottom navigation */}
-        <div className="lg:hidden flex items-center justify-around py-2 bg-secondary-dark border-t border-gray-700">
-          {navLinks.map((link) => {
+        <div 
+          className="lg:hidden flex items-center justify-around py-2 bg-secondary-dark border-t border-gray-700"
+          role="navigation"
+          aria-label="Mobile navigation"
+        >
+          {navLinks.map((link, index) => {
             const isActive = location.pathname === link.to || 
               (link.to !== '/' && location.pathname.startsWith(link.to));
+            
+            // Only show the first 5 items in mobile navigation to avoid overcrowding
+            if (index >= 5) return null;
               
             return (
               <NavLink
                 key={link.to}
                 to={link.to}
-                className={`p-2 rounded-full ${
+                className={`p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-secondary-dark focus:ring-white ${
                   isActive 
                     ? 'text-white bg-primary' 
-                    : 'text-gray-300 hover:text-white'
+                    : 'text-gray-300 hover:text-white hover:bg-secondary/50'
                 }`}
+                aria-label={link.label}
+                aria-current={isActive ? 'page' : undefined}
+                onKeyDown={(e) => {
+                  // Handle keyboard navigation
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate(link.to);
+                  }
+                }}
+              >
+                <div className="flex flex-col items-center">
+                  <svg
+                    className="w-6 h-6 mx-auto"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={isActive ? 2 : 1.5}
+                      d={link.mobileIcon || link.icon}
+                    />
+                  </svg>
+                  <span className="text-xs mt-1">
+                    {link.label.split(' ')[0]}
+                  </span>
+                </div>
+              </NavLink>
+            );
+          })}
+          
+          {/* More menu for additional items */}
+          {navLinks.length > 5 && (
+            <div className="relative group">
+              <button 
+                className="p-2 rounded-full text-gray-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-secondary-dark focus:ring-white"
+                aria-haspopup="true"
+                aria-expanded="false"
+                aria-label="More options"
+                onClick={(e) => {
+                  e.preventDefault();
+                  // Toggle more menu
+                  const moreMenu = document.getElementById('more-menu');
+                  moreMenu?.classList.toggle('hidden');
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    const moreMenu = document.getElementById('more-menu');
+                    moreMenu?.classList.toggle('hidden');
+                  }
+                }}
               >
                 <svg
-                  className="w-6 h-6 mx-auto"
+                  className="w-6 h-6"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                   xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
                 >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth={isActive ? 2 : 1.5}
-                    d={link.mobileIcon || link.icon}
+                    strokeWidth={1.5}
+                    d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"
                   />
                 </svg>
-                <span className="sr-only">{link.label}</span>
-              </NavLink>
-            );
-          })}
+              </button>
+              
+              {/* Dropdown menu */}
+              <div 
+                id="more-menu"
+                className="hidden absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10"
+                role="menu"
+                aria-orientation="vertical"
+                tabIndex="-1"
+              >
+                <div className="py-1" role="none">
+                  {navLinks.slice(5).map((link) => {
+                    const isActive = location.pathname === link.to || 
+                      (link.to !== '/' && location.pathname.startsWith(link.to));
+                      
+                    return (
+                      <NavLink
+                        key={link.to}
+                        to={link.to}
+                        className={`block px-4 py-2 text-sm ${
+                          isActive 
+                            ? 'bg-gray-100 text-gray-900' 
+                            : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                        role="menuitem"
+                        tabIndex="-1"
+                        onClick={() => {
+                          const moreMenu = document.getElementById('more-menu');
+                          moreMenu?.classList.add('hidden');
+                        }}
+                      >
+                        {link.label}
+                      </NavLink>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </aside>

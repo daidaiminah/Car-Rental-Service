@@ -36,7 +36,7 @@ const OwnerDashboard = () => {
   
   // Use RTK Query hooks to fetch data
   const { 
-    data: cars = [], 
+    data: carsResponse = {},
     isLoading: carsLoading,
     isError: carsError,
     error: carsErrorData
@@ -44,35 +44,28 @@ const OwnerDashboard = () => {
     skip: !user?.id
   });
   
+  // Extract cars from the response, handling both direct array and nested data property
+  const cars = Array.isArray(carsResponse) 
+    ? carsResponse 
+    : Array.isArray(carsResponse?.data) 
+      ? carsResponse.data 
+      : [];
+  
   const { 
-    data: rentals = [],
+    data: rentalsResponse = {},
     isLoading: rentalsLoading,
     isError: rentalsError,
     error: rentalsErrorData
   } = useGetRentalsByOwnerIdQuery(user?.id, {
     skip: !user?.id
   });
-
-  // // Debug: Log the car object and image URL
-  // React.useEffect(() => {
-  //   console.log('Car data:', car);
-  //   console.log('Image URL:', car.imageUrl);
-  // }, [car]);
-
-  // // Construct the image URL
-  // const getImageUrl = () => {
-  //   // If imageUrl is already a full URL, use it as is
-  //   if (car.imageUrl?.startsWith('http')) {
-  //     return car.imageUrl;
-  //   }
-  //   // If it's a relative path, prepend the API base URL
-  //   if (car.imageUrl?.startsWith('/')) {
-  //     return `http://localhost:3001${car.imageUrl}`;
-  //   }
-  //   // Fallback to placeholder
-  //   return 'https://via.placeholder.com/300x200?text=Car+Image';
-  // };
-
+  
+  // Extract rentals from the response, handling both direct array and nested data property
+  const rentals = Array.isArray(rentalsResponse) 
+    ? rentalsResponse 
+    : Array.isArray(rentalsResponse?.data) 
+      ? rentalsResponse.data 
+      : [];
   
   // Show errors in console
   if (carsError) {
@@ -187,11 +180,11 @@ const OwnerDashboard = () => {
                   <div className="mt-4 flex justify-between items-center">
                     <span className="font-bold text-orange-600">${car.rentalPricePerDay}/day</span>
                     <span className={`px-2 py-1 rounded-full text-xs ${
-                      car.status === 'available' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-orange-100 text-orange-800'
+                      car.status === 'rented' 
+                        ? 'bg-orange-100 text-orange-800'
+                        : 'bg-green-100 text-green-800' 
                     }`}>
-                      {car.status === 'available' ? 'Available' : 'Rented'}
+                      {car.status === 'rented' ? 'Rented' : 'Available'}
                     </span>
                   </div>
                 </div>

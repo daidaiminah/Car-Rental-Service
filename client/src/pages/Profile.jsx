@@ -8,20 +8,35 @@ import {
   useUpdateUserProfileMutation,
   useChangePasswordMutation 
 } from '../store/features/users/usersApiSlice';
+import OwnerDashboard from '../components/OwnerDashboard';
+import RenterDashboard from '../components/RenterDashboard';
 
 const Profile = () => {
   const user = useSelector(selectCurrentUser);
   const [editMode, setEditMode] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   
+  // Debug: Log authentication status and user data
+  console.log('Current user from Redux:', user);
+  //console.log('Auth token:', localStorage.getItem('token'));
+  
   // Get user profile data using RTK Query
   const { 
     data: userData, 
     isLoading: profileLoading,
+    error: profileError,
     refetch: refetchUserProfile
   } = useGetUserProfileQuery(user?.id, {
     skip: !user?.id
   });
+  
+  // Log profile data and errors
+  useEffect(() => {
+    console.log('Profile data:', userData);
+    if (profileError) {
+      console.error('Error fetching profile:', profileError);
+    }
+  }, [userData, profileError]);
   
   // Update profile mutation
   const [updateProfile, { isLoading: updateLoading }] = useUpdateUserProfileMutation();
@@ -38,6 +53,7 @@ const Profile = () => {
     country: '',
     profileImage: ''
   });
+  const [profileImageFile, setProfileImageFile] = useState(null);
   
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -59,6 +75,26 @@ const Profile = () => {
       });
     }
   }, [userData]);
+
+  // Handle loading and error states
+  if (profileLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (profileError) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <strong className="font-bold">Error!</strong>
+          <span className="block sm:inline"> Failed to load profile. Please try again later.</span>
+        </div>
+      </div>
+    );
+  }
   
   // Loading state derived from RTK Query loading states
   const loading = profileLoading || updateLoading || passwordLoading;
@@ -83,8 +119,9 @@ const Profile = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // For now, we'll use a simple file reader to create a preview
-    // In production, you'd want to upload this to a server or cloud storage
+    setProfileImageFile(file);
+
+    // Create a preview for the UI
     const reader = new FileReader();
     reader.onload = () => {
       setProfileData(prev => ({
@@ -99,20 +136,33 @@ const Profile = () => {
     e.preventDefault();
     
     try {
+      const formData = new FormData();
+      
+      // Append all profile data fields
+      Object.keys(profileData).forEach(key => {
+        if (key !== 'profileImage') { // Don't append the preview URL
+          formData.append(key, profileData[key]);
+        }
+      });
+
+      // If a new image was selected, append the file
+      if (profileImageFile) {
+        formData.append('profileImage', profileImageFile);
+      }
+
       // Call RTK Query mutation to update profile
-      await updateProfile({
-        id: user.id,
-        ...profileData
-      }).unwrap();
+      await updateProfile(formData).unwrap();
       
       // Refetch user profile to update the UI
       refetchUserProfile();
       
       toast.success('Profile updated successfully');
       setEditMode(false);
+      setProfileImageFile(null); // Reset the image file state
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Failed to update profile. Please try again.');
+      const errorMessage = error?.data?.message || 'Failed to update profile. Please try again.';
+      toast.error(errorMessage);
     }
   };
 
@@ -127,7 +177,6 @@ const Profile = () => {
     try {
       // Call RTK Query mutation to change password
       await changePassword({
-        id: user.id,
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword
       }).unwrap();
@@ -141,7 +190,8 @@ const Profile = () => {
       });
     } catch (error) {
       console.error('Error changing password:', error);
-      toast.error('Failed to change password. Please check your current password and try again.');
+      const errorMessage = error?.data?.message || 'Failed to change password. Please check your current password and try again.';
+      toast.error(errorMessage);
     }
   };
 
@@ -155,7 +205,7 @@ const Profile = () => {
           <div className="flex flex-col md:flex-row items-center">
             <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 mb-4 md:mb-0 md:mr-6">
               <img 
-                src={profileData.profileImage || 'https://via.placeholder.com/150?text=User'} 
+                src={profileData.profileImage} 
                 alt="Profile" 
                 className="w-full h-full object-cover"
               />
@@ -181,6 +231,10 @@ const Profile = () => {
         
         {/* Profile Content */}
         <div className="p-6">
+          {/* Role-specific dashboard sections */}
+          {userData?.role === 'owner' && <OwnerDashboard userId={user.id} />}
+          {userData?.role === 'customer' && <RenterDashboard userId={user.id} />}
+
           {editMode ? (
             <form onSubmit={handleProfileSubmit}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -198,16 +252,11 @@ const Profile = () => {
                 </div>
                 
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-secondary-dark mb-1">Email Address</label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={profileData.email}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                    required
-                  />
+                  <label className="block text-sm font-medium text-secondary-dark mb-1">Email Address</label>
+                  <div className="w-full border border-gray-200 bg-gray-50 rounded-md px-3 py-2 text-gray-700">
+                    {profileData.email}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
                 </div>
                 
                 <div>

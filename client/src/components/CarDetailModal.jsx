@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { FiX, FiCalendar, FiMapPin, FiCreditCard, FiClock, FiCheck, FiChevronLeft, FiChevronRight, FiStar, FiMessageSquare } from 'react-icons/fi';
 import { FaCar, FaGasPump, FaCogs } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import BookingFlow from './BookingFlow';
+import { selectCurrentUser } from "../store/features/auth/authSlice";
+import ReviewList from './reviews/ReviewList';
+import ReviewForm from './reviews/ReviewForm';
+import useCarReviews from '../hooks/useCarReviews';
 
 const CarDetailModal = ({ car, onClose, onBook }) => {
-  // Sample images for carousel (in a real app, these would come from the car object)
+  // Car images for the carousel
   const carImages = [
     car.imageUrl || 'https://via.placeholder.com/800x500?text=No+Image',
     'https://via.placeholder.com/800x500?text=Image+2',
@@ -13,47 +18,47 @@ const CarDetailModal = ({ car, onClose, onBook }) => {
     'https://via.placeholder.com/800x500?text=Image+4'
   ];
   
-  // Sample reviews (in a real app, these would come from an API)
-  const reviews = [
-    {
-      id: 1,
-      user: 'Mary Johnson',
-      date: '2024-01-10',
-      rating: 5,
-      comment: 'Excellent car! James was very professional and the car was exactly as described. Clean, comfortable, and perfect for my trip to Gbarnga.'
-    },
-    {
-      id: 2,
-      user: 'David Wilson',
-      date: '2024-01-05',
-      rating: 5,
-      comment: 'Great experience! The car was in perfect condition and James was very responsive. Highly recommend for anyone needing a reliable ride in Monrovia.'
-    }
-  ];
+  // Fetch reviews for this car
+  const { 
+    reviews, 
+    averageRating, 
+    totalReviews, 
+    isLoading: isLoadingReviews, 
+    error: reviewsError,
+    addReview 
+  } = useCarReviews(car?.id);
   
-  // Sample host data (in a real app, this would come from the car owner's profile)
-  const host = {
-    name: 'James Kollie',
-    joinedYear: 2023,
-    responseTime: '2 hours',
-    rating: 4.8,
-    tripsCompleted: 156,
-    carsListed: 3
+  // Host data from the car owner
+  const host = car?.owner || {
+    name: car?.ownerName || 'Car Owner',
+    profileImage: car?.ownerImage,
+    joinedYear: new Date(car?.ownerCreatedAt).getFullYear() || new Date().getFullYear(),
+    responseTime: '2 hours', // This would come from the owner's profile
+    rating: averageRating,
+    tripsCompleted: car?.tripsCompleted || 0,
+    carsListed: car?.carsListed || 1
   };
+  const user = useSelector(selectCurrentUser);
   
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showBookingFlow, setShowBookingFlow] = useState(false);
+  const [activeTab, setActiveTab] = useState('details');
+  const [completedRentalId, setCompletedRentalId] = useState(null);
 
   const handleBookNow = () => {
     setShowBookingFlow(true);
   };
   
-  const handleBookingComplete = (bookingData) => {
+  const handleBookingSuccess = (rental) => {
+    toast.success('Booking confirmed! Check your email for details.');
     setShowBookingFlow(false);
-    if (onBook) {
-      onBook(bookingData);
-    }
-    toast.success('Booking completed successfully!');
+    // Store the rental ID for review purposes
+    setCompletedRentalId(rental.id);
+  };
+  
+  const handleReviewSubmitted = (newReview) => {
+    addReview(newReview);
+    setActiveTab('reviews');
   };
   
   const nextImage = () => {
@@ -77,7 +82,7 @@ const CarDetailModal = ({ car, onClose, onBook }) => {
     return (
       <div className="relative w-full h-96 bg-light-gray overflow-hidden rounded-lg mb-6">
         <img 
-          src={car.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image'} 
+          src={carImages[currentImageIndex]} 
           alt={`${car.make} ${car.model}`}
           className="w-full h-full object-cover"
         />
@@ -123,7 +128,7 @@ const CarDetailModal = ({ car, onClose, onBook }) => {
             <p className="text-secondary-light">{car.location}</p>
           </div>
           <div className="text-right">
-            <p className="text-2xl font-bold text-primary">${car.rentalPricePerDay}<span className="text-sm font-normal text-secondary-light">/day</span></p>
+            <p className="text-2xl font-bold text-primary">${car.rentalPricePerDay || car.pricePerDay}<span className="text-sm font-normal text-secondary-light">/day</span></p>
           </div>
         </div>
         
@@ -184,7 +189,7 @@ const CarDetailModal = ({ car, onClose, onBook }) => {
         <div className="flex items-center mb-4">
           <div className="w-16 h-16 rounded-full bg-gray-300 mr-4"></div>
           <div>
-            <h4 className="font-medium">{host.name}</h4>
+            <h4 className="font-medium">{user?.name || 'Owner'}</h4>
             <p className="text-gray-600">Joined {host.joinedYear}</p>
             <div className="flex items-center">
               <FiStar className="text-yellow-500 mr-1" />
@@ -301,6 +306,17 @@ const CarDetailModal = ({ car, onClose, onBook }) => {
     return true;
   };
 
+  const handleBookingComplete = async (bookingDetails) => {
+    try {
+      await onBook(bookingDetails);
+      toast.success('Booking successful!');
+      onClose();
+    } catch (error) {
+      console.error('Booking error:', error);
+      toast.error(error.message || 'Failed to complete booking');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -317,9 +333,7 @@ const CarDetailModal = ({ car, onClose, onBook }) => {
         totalAmount: calculateTotalPrice()
       };
       
-      await onBook(bookingDetails);
-      toast.success('Booking successful!');
-      onClose();
+      await handleBookingComplete(bookingDetails);
     } catch (error) {
       console.error('Booking error:', error);
       toast.error(error.message || 'Failed to complete booking');

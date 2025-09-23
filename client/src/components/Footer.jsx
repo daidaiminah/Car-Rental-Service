@@ -162,7 +162,7 @@ const Footer = () => {
                   />
                 </svg>
                 <a
-                  href="mailto:info@carrental.com"
+                  href="mailto:info@whipintime.com"
                   className="hover:text-white transition-colors"
                 >
                   info@whipintime.com

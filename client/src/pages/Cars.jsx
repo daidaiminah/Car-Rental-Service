@@ -215,7 +215,7 @@ const Cars = () => {
                 <div key={car.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
                   <div className="relative">
                     <img 
-                      src={car.image || `https://via.placeholder.com/400x240?text=${car.make}+${car.model}`} 
+                      src={car.imageUrl || `https://via.placeholder.com/400x240?text=${car.make}+${car.model}`} 
                       alt={`${car.make} ${car.model}`}
                       className="w-full h-48 object-cover"
                     />
@@ -259,7 +259,7 @@ const Cars = () => {
                     
                     <div className="flex justify-between items-center">
                       <div>
-                        <span className="text-xl font-bold text-primary">${car.pricePerDay || car.dailyRate}/</span>
+                        <span className="text-xl font-bold text-primary">${car.rentalPricePerDay || car.dailyRate}/</span>
                         <span className="text-gray-500">day</span>
                       </div>
                       <Link 

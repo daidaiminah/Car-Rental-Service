@@ -31,11 +31,22 @@ import Profile from './pages/Profile';
 import AddCar from './pages/AddCar';
 import About from './pages/About';
 import Contact from './pages/Contact';
+import Services from './pages/Services';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import FAQ from './pages/FAQ';
 import SocialMedia from './pages/SocialMedia';
 import SafetySupport from './pages/SafetySupport';
+import Settings from './pages/Settings';
+import OwnerEarnings from './pages/owner/Earnings';
+import RenterWishlist from './pages/renter/Wishlist';
+import RenterPayments from './pages/renter/Payments';
+import AdminReports from './pages/admin/Reports';
+import PaymentPage from './pages/payment/PaymentPage';
+import PaymentSuccess from './pages/payment/PaymentSuccess';
+import ReviewsPage from './pages/reviews';
+import BookingSuccess from './pages/BookingSuccess';
+import BookingCancel from './pages/BookingCancel';
 
 // Protected route component
 const ProtectedRoute = ({ children, requiredRole }) => {
@@ -108,6 +119,7 @@ function AppContent() {
         <Route index element={<Home />} />
         <Route path="about" element={<About />} />
         <Route path="contact" element={<Contact />} />
+        <Route path="services" element={<Services />} />
         <Route path="terms" element={<TermsOfService />} />
         <Route path="privacy" element={<PrivacyPolicy />} />
         <Route path="faq" element={<FAQ />} />
@@ -132,6 +144,10 @@ function AppContent() {
         <Route path="cars/:id" element={<CarDetails />} />
         <Route path="rentals" element={<Rentals />} />
         <Route path="rentals/:id" element={<RentalDetails />} />
+        <Route path="reports" element={<AdminReports />} />
+        <Route path="profile" element={<Profile />} />
+        <Route path="settings" element={<Settings />} />
+        <Route path="help" element={<SafetySupport />} />
       </Route>
 
       {/* ============================================
@@ -149,6 +165,9 @@ function AppContent() {
         <Route path="cars/:id" element={<CarDetails />} />
         <Route path="rentals" element={<MyRentals />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="settings" element={<Settings />} />
+        <Route path="help" element={<SafetySupport />} />
+        <Route path="earnings" element={<OwnerEarnings />} />
       </Route>
 
       {/* ============================================
@@ -163,6 +182,13 @@ function AppContent() {
         <Route path="browse" element={<BrowseCars />} />
         <Route path="bookings" element={<MyBookings />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="settings" element={<Settings />} />
+        <Route path="help" element={<SafetySupport />} />
+        <Route path="wishlist" element={<RenterWishlist />} />
+        <Route path="payments" element={<RenterPayments />} />
+        <Route path="reviews" element={ <ReviewsPage />} />
+        <Route path="payments/rental/:rentalId" element={<PaymentPage />} />
+        <Route path="payments/success/:rentalId" element={<PaymentSuccess />} />
       </Route>
       
       
@@ -171,6 +197,18 @@ function AppContent() {
         <ProtectedRoute>
           <RoleBasedRedirect />
         </ProtectedRoute>
+      } />
+      
+      {/* Booking flow routes */}
+      <Route path="/booking/success" element={
+        <Layout>
+          <BookingSuccess />
+        </Layout>
+      } />
+      <Route path="/booking/cancel" element={
+        <Layout>
+          <BookingCancel />
+        </Layout>
       } />
 
       {/* Auth routes */}

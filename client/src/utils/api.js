@@ -3,7 +3,7 @@ import { getAuthToken } from './auth';
 
 // Create axios instance with base URL and headers
 const api = axios.create({
-  baseURL: 'http://localhost:3001/api', // Update this with your actual API base URL
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api',
   headers: {
     'Content-Type': 'application/json',
   },

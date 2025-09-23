@@ -273,7 +273,7 @@ const Home = () => {
             className="text-center mb-12"
             variants={slideUp}
           >
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose Whip In Time</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose Comfort Car Rental Service </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">Experience the best car rental service with our premium vehicles and exceptional customer support</p>
           </motion.div>
           

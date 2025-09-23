@@ -7,64 +7,92 @@ export const usersApiSlice = createApi({
     prepareHeaders: (headers, { getState }) => {
       // Get token from localStorage
       const token = localStorage.getItem('token');
+      console.log('Current token:', token); // Debug log
       
       // If we have a token, add it to the headers
       if (token) {
         headers.set('authorization', `Bearer ${token}`);
+        console.log('Authorization header set with token'); // Debug log
+      } else {
+        console.warn('No token found in localStorage'); // Debug log
       }
       
       return headers;
     },
   }),
-  tagTypes: ['Users'],
+  tagTypes: ['User'],
   endpoints: (builder) => ({
     // Get all users (admin only)
     getAllUsers: builder.query({
-      query: () => '/users',
+      query: () => '/user',
       providesTags: (result) =>
         result
           ? [
-              ...result.map(({ id }) => ({ type: 'Users', id })),
-              { type: 'Users', id: 'LIST' },
+              ...result.map(({ id }) => ({ type: 'User', id })),
+              { type: 'User', id: 'LIST' },
             ]
-          : [{ type: 'Users', id: 'LIST' }],
+          : [{ type: 'User', id: 'LIST' }],
     }),
     
     // Get user profile
     getUserProfile: builder.query({
-      query: (userId) => `/users/${userId}`,
-      providesTags: (result, error, id) => [{ type: 'Users', id }],
+      query: (userId) => ({
+        url: `/users/profile/${userId}`,
+        method: 'GET',
+      }),
+      providesTags: (result) => [{ type: 'User', id: result?.id || 'CURRENT' }],
+      transformResponse: (response) => {
+        // If the response is wrapped in a data property, return it directly
+        if (response && response.data) {
+          return response.data;
+        }
+        return response;
+      },
     }),
     
     // Update user profile
     updateUserProfile: builder.mutation({
-      query: ({ id, ...userData }) => ({
-        url: `/users/${id}`,
-        method: 'PUT',
-        body: userData,
-      }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Users', id }],
+      query: (userData) => {
+        // If userData is a FormData object, let the browser set the Content-Type
+        if (userData instanceof FormData) {
+          return {
+            url: '/users/profile',
+            method: 'PUT',
+            body: userData,
+            formData: true, // Important for RTK Query to handle FormData
+          };
+        }
+        // Otherwise, send as JSON
+        return {
+          url: '/users/profile',
+          method: 'PUT',
+          body: userData,
+        };
+      },
+      // Instead of invalidating, we provide the updated user data directly to the cache.
+      // This is more efficient as it avoids a follow-up refetch.
+      providesTags: (result, error, arg) => [{ type: 'User', id: result?.data?.id || 'CURRENT' }],
     }),
     
-    // Change password
+      // Change password
     changePassword: builder.mutation({
-      query: ({ id, ...passwordData }) => ({
-        url: `/users/${id}/password`,
-        method: 'PUT',
-        body: passwordData,
+      query: (data) => ({
+        url: '/user/change-password',
+        method: 'POST',
+        body: data,
       }),
     }),
     
     // Get car owners (for admin dashboard)
     getCarOwners: builder.query({
       query: () => '/users/owners',
-      providesTags: [{ type: 'Users', id: 'OWNERS' }],
+      providesTags: [{ type: 'User', id: 'OWNERS' }],
     }),
     
     // Get renters (for admin dashboard)
     getRenters: builder.query({
-      query: () => '/users/renters',
-      providesTags: [{ type: 'Users', id: 'RENTERS' }],
+      query: () => '/user/renters',
+      providesTags: [{ type: 'User', id: 'RENTERS' }],
     }),
   }),
 });
@@ -74,6 +102,6 @@ export const {
   useGetUserProfileQuery,
   useUpdateUserProfileMutation,
   useChangePasswordMutation,
-  useGetCarOwnersQuery,
-  useGetRentersQuery,
 } = usersApiSlice;
+
+export default usersApiSlice;

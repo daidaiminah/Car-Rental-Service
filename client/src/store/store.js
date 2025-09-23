@@ -20,6 +20,7 @@ import carsApi from './features/cars/carsApiSlice';
 import { authApiSlice } from './features/auth/authApiSlice';
 import { rentalsApiSlice } from './features/rentals/rentalsApiSlice';
 import { usersApiSlice } from './features/users/usersApiSlice';
+import { paymentApiSlice } from './features/payment/paymentApiSlice';
 
 
 // Import feature reducers
@@ -64,7 +65,7 @@ const enhancedApi = apiSlice.injectEndpoints({
       }),
       providesTags: ['Car'],
     }),
-    
+    //Featured Cars endpoints
     getFeaturedCars: builder.query({
       query: (limit = 6) => ({
         url: '/cars/featured',
@@ -120,7 +121,7 @@ const persistConfig = {
   storage, // Storage engine (localStorage by default)
   version: 1, // Version number for the persisted state (useful for migrations)
   // Define which reducers to persist and their configuration
-  blacklist: [apiSlice.reducerPath, carsApi.reducerPath, rentalsApiSlice.reducerPath], // Don't persist API caches
+  blacklist: [apiSlice.reducerPath, carsApi.reducerPath, rentalsApiSlice.reducerPath, paymentApiSlice.reducerPath], // Don't persist API caches
   // Whitelist would be used to specify which reducers to persist, but we're using blacklist here
 };
 
@@ -134,6 +135,8 @@ const rootReducer = combineReducers({
   [carsApi.reducerPath]: carsApi.reducer,
   [authApiSlice.reducerPath]: authApiSlice.reducer,
   [rentalsApiSlice.reducerPath]: rentalsApiSlice.reducer,
+  [usersApiSlice.reducerPath]: usersApiSlice.reducer,
+  [paymentApiSlice.reducerPath]: paymentApiSlice.reducer,
   
   // Feature reducers (persisted)
   auth: authReducer,
@@ -158,7 +161,8 @@ const store = configureStore({
     .concat(carsApi.middleware)
     .concat(authApiSlice.middleware)
     .concat(rentalsApiSlice.middleware)
-    .concat(usersApiSlice.middleware),
+    .concat(usersApiSlice.middleware)
+    .concat(paymentApiSlice.middleware),
   devTools: process.env.NODE_ENV !== 'production',
 });
 

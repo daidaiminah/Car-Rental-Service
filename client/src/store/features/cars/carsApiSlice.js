@@ -34,8 +34,28 @@ const carsApi = createApi({
         };
       },
       transformResponse: (response) => {
-        // If the response has a data property, return that, otherwise return the response as is
-        return response.data || response;
+        const data = response.data || response;
+        
+        // If data is an array, process each car to include review stats
+        if (Array.isArray(data)) {
+          return data.map(car => ({
+            ...car,
+            // Add default values if not present
+            averageRating: car.averageRating || 0,
+            reviewCount: car.reviewCount || 0
+          }));
+        }
+        
+        // If it's a single car object
+        if (data && typeof data === 'object') {
+          return {
+            ...data,
+            averageRating: data.averageRating || 0,
+            reviewCount: data.reviewCount || 0
+          };
+        }
+        
+        return data;
       },
       providesTags: (result) =>
         result && Array.isArray(result)
@@ -50,8 +70,28 @@ const carsApi = createApi({
     getFeaturedCars: builder.query({
       query: () => '/cars/featured',
       transformResponse: (response) => {
-        // If the response has a data property, return that, otherwise return the response as is
-        return response.data || response;
+        const data = response.data || response;
+        
+        // If data is an array, process each car to include review stats
+        if (Array.isArray(data)) {
+          return data.map(car => ({
+            ...car,
+            // Add default values if not present
+            averageRating: car.averageRating || 0,
+            reviewCount: car.reviewCount || 0
+          }));
+        }
+        
+        // If it's a single car object
+        if (data && typeof data === 'object') {
+          return {
+            ...data,
+            averageRating: data.averageRating || 0,
+            reviewCount: data.reviewCount || 0
+          };
+        }
+        
+        return data;
       },
       providesTags: (result) =>
         result && Array.isArray(result)
@@ -66,8 +106,28 @@ const carsApi = createApi({
     getCarById: builder.query({
       query: (id) => `/cars/${id}`,
       transformResponse: (response) => {
-        // If the response has a data property, return that, otherwise return the response as is
-        return response.data || response;
+        const data = response.data || response;
+        
+        // If data is an array, process each car to include review stats
+        if (Array.isArray(data)) {
+          return data.map(car => ({
+            ...car,
+            // Add default values if not present
+            averageRating: car.averageRating || 0,
+            reviewCount: car.reviewCount || 0
+          }));
+        }
+        
+        // If it's a single car object
+        if (data && typeof data === 'object') {
+          return {
+            ...data,
+            averageRating: data.averageRating || 0,
+            reviewCount: data.reviewCount || 0
+          };
+        }
+        
+        return data;
       },
       providesTags: (result, error, id) => [{ type: 'Cars', id }],
     }),

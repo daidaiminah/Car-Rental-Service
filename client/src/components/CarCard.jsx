@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FiStar, FiMapPin, FiUsers, FiDroplet } from 'react-icons/fi';
+import { FiStar, FiMapPin, FiUsers, FiDroplet, FiClock } from 'react-icons/fi';
 
 
 const CarCard = ({ car }) => {
@@ -31,6 +31,23 @@ const CarCard = ({ car }) => {
               <FiMapPin className="w-4 h-4 mr-1" />
               <span>{car.location || 'Nairobi, Kenya'}</span>
             </div>
+            
+            {/* Rating and Review Count */}
+            {(car.averageRating || car.reviewCount) && (
+              <div className="flex items-center mt-1">
+                <div className="flex items-center text-yellow-400">
+                  <FiStar className="w-4 h-4 fill-current" />
+                  <span className="ml-1 text-sm font-medium text-gray-700">
+                    {car.averageRating?.toFixed(1) || '0.0'}
+                  </span>
+                </div>
+                {car.reviewCount > 0 && (
+                  <span className="ml-1 text-xs text-gray-500">
+                    ({car.reviewCount} {car.reviewCount === 1 ? 'review' : 'reviews'})
+                  </span>
+                )}
+              </div>
+            )}
           </div>
           <div className="text-right">
             <span className="font-bold text-lg">${car.rentalPricePerDay ? `${car.rentalPricePerDay}` : '--'}</span>

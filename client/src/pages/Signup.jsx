@@ -101,13 +101,43 @@ const Signup = () => {
         });
       }, 2000);
     } catch (err) {
-      console.error('Signup error:', err);
+      // console.error('Signup error:', err);
       // Dismiss loading toast if still showing
       toast.dismiss();
       
-      // Show error toast
-      const errorMessage = err.data?.message || err.error || 'Registration failed. Please try again.';
-      toast.error(errorMessage);
+      // Handle specific error cases
+      let errorMessage = 'Registration failed. Please try again.';
+      
+      // Check for the specific email exists error
+      if (err?.data?.message?.includes('already exists') || 
+          err?.data?.message?.includes('already registered') ||
+          err?.data?.field === 'email') {
+        errorMessage = err.data.message || 'This email is already registered. Please use a different email or try logging in.';
+      } 
+      // Handle other 400 errors
+      else if (err.status === 400) {
+        if (err.data?.errors) {
+          // Handle validation errors
+          errorMessage = 'Please correct the following errors:';
+          Object.values(err.data.errors).forEach((error) => {
+            errorMessage += `\n• ${error}`;
+          });
+        } else if (err.data?.message) {
+          errorMessage = err.data.message;
+        }
+      } 
+      // Handle network errors
+      else if (err.status === 'FETCH_ERROR') {
+        errorMessage = 'Unable to connect to the server. Please check your internet connection.';
+      }
+      
+      // Show error toast with the appropriate message
+      toast.error(errorMessage, {
+        autoClose: 5000,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
       
       // Also set error for form display if needed
       setError(errorMessage);
@@ -207,6 +237,10 @@ const Signup = () => {
                   value={formData.email}
                   onChange={handleInputChange}
                 />
+                {/* Inside your form, after the email input field */}
+                {error && error.toLowerCase().includes('email') && (
+                  <p className="mt-1 text-sm text-red-600">{error}</p>
+                )}
               </div>
             </div>
 

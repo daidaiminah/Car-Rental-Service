@@ -17,7 +17,7 @@ const CarDetails = () => {
 
   // Use RTK Query hooks to fetch data
   const { 
-    data: car,
+    data: carResponse,
     isLoading: isLoadingCar,
     isError: isCarError,
     error: carError
@@ -26,14 +26,24 @@ const CarDetails = () => {
     skip: id === 'new' 
   });
   
+  // Extract car from the response, handling both direct object and nested data property
+  const car = carResponse?.data || carResponse;
+  
   // Fetch rentals for this car
   const {
-    data: carRentals = [],
+    data: carRentalsResponse,
     isLoading: isLoadingRentals
   } = useGetRentalsByCarIdQuery(id, {
     // Skip query if we're on the 'new' page
     skip: id === 'new'
   });
+  
+  // Extract rentals from the response, handling both direct array and nested data property
+  const carRentals = Array.isArray(carRentalsResponse) 
+    ? carRentalsResponse 
+    : Array.isArray(carRentalsResponse?.data) 
+      ? carRentalsResponse.data 
+      : [];
   
   // RTK Query mutation hooks
   const [addCar] = useAddCarMutation();
@@ -47,6 +57,10 @@ const CarDetails = () => {
       setError(carError?.data?.message || 'Failed to load car data');
     }
   }, [isCarError, carError]);
+  
+  // Determine loading and error states without early returns
+  const isLoading = id !== 'new' && (isLoadingCar || isLoadingRentals);
+  const hasError = isCarError || (id !== 'new' && !car);
 
 
   
@@ -157,20 +171,52 @@ const CarDetails = () => {
     features: []
   };
 
-  // Determine if we're loading
+  // Determine loading state
   const loading = id !== 'new' && (isLoadingCar || isLoadingRentals);
-  
+
+  // Handle loading state
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-secondary">Loading car details...</p>
+      <div className="container mx-auto py-8 px-4">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading car details...</p>
         </div>
       </div>
     );
   }
 
+  // Handle error state
+  if (hasError) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <div className="bg-red-50 border-l-4 border-red-400 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">
+                {error || 'Failed to load car details. Please try again later.'}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="mt-6 text-center">
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Main content
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -216,10 +262,10 @@ const CarDetails = () => {
                     <p className="text-secondary-light text-sm">Color</p>
                     <div className="flex items-center">
                       <span 
-                        className="w-4 h-4 rounded-full mr-2" 
-                        style={{ backgroundColor: car.color.toLowerCase() }}
+                        className="w-4 h-4 rounded-full mr-2 border border-gray-300" 
+                        style={{ backgroundColor: car.color ? car.color.toLowerCase() : '#cccccc' }}
                       ></span>
-                      <p className="font-medium">{car.color}</p>
+                      <p className="font-medium">{car.color || 'N/A'}</p>
                     </div>
                   </div>
                   <div>
@@ -267,12 +313,12 @@ const CarDetails = () => {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                     <span className="text-secondary-light">Status</span>
-                    <span className={`px-2 py-1 rounded-full text-xs ${
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                       car.status === 'Available' 
-                        ? 'bg-green-100 text-green-800' 
+                        ? 'bg-green-50 text-green-700 border border-green-200' 
                         : car.status === 'Rented'
-                        ? 'bg-blue-100 text-blue-800'
-                        : 'bg-yellow-100 text-yellow-800'
+                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                        : 'bg-yellow-50 text-yellow-700 border border-yellow-200'
                     }`}>
                       {car.status}
                     </span>
@@ -322,12 +368,12 @@ const CarDetails = () => {
                         <td className="px-4 py-3 text-sm">{rental.endDate}</td>
                         <td className="px-4 py-3 text-sm">{rental.amount}</td>
                         <td className="px-4 py-3 text-sm">
-                          <span className={`px-2 py-1 rounded-full text-xs ${
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                             rental.status === 'Active' 
-                              ? 'bg-green-100 text-green-800' 
+                              ? 'bg-green-50 text-green-700 border border-green-200' 
                               : rental.status === 'Upcoming'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-gray-100 text-gray-800'
+                              ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                              : 'bg-gray-50 text-gray-700 border border-gray-200'
                           }`}>
                             {rental.status}
                           </span>
