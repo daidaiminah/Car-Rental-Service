@@ -6,7 +6,8 @@ import {
   updateCar, 
   deleteCar, 
   getFeaturedCars,
-  getCarsByOwner 
+  getCarsByOwner,
+  getAvailableCars 
 } from "../controllers/carController.js";
 import { uploadSingleImage, handleUploadErrors } from "../middlewares/upload.js";
 
@@ -22,6 +23,7 @@ router.post(
 
 router.get("/", getAllCars);
 router.get("/featured", getFeaturedCars);
+router.get("/available", getAvailableCars);
 router.get("/owner/:ownerId", getCarsByOwner);
 router.get("/:id", getCarById);
 router.put(

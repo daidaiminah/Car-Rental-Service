@@ -3,19 +3,20 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+
 // Log environment for debugging
 console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('Database Host:', process.env.PDB_HOST || 'Not set');
+console.log('Database Host:', process.env.DB_HOST || 'Not set');
 
 // Database connection configuration
 const dbConfig = {
-  database: process.env.PDB_NAME,
-  username: process.env.PDB_USER,
-  password: process.env.PDB_PASSWORD,
-  host: process.env.PDB_HOST,
-  port: parseInt(process.env.PDB_PORT, 10) || 5432,
+  database: process.env.DB_NAME,
+  username: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT, 10) || 5432,
   dialect: 'postgres',
-  logging: process.env.NODE_ENV === 'production' ? console.log : false,
+  logging: process.env.NODE_ENV === 'development' ? console.log : false,
   define: {
     timestamps: true,
     underscored: true,
@@ -44,14 +45,14 @@ const testConnection = async () => {
   console.log('Environment:', process.env.NODE_ENV);
   
   // Log environment variables for debugging
-  console.log('Environment Variables:', {
-    PDB_HOST: process.env.PDB_HOST ? '***' : 'Not set',
-    PDB_PORT: process.env.PDB_PORT || 'Not set (using default 5432)',
-    PDB_NAME: process.env.PDB_NAME ? '***' : 'Not set',
-    PDB_USER: process.env.PDB_USER ? '***' : 'Not set',
-    PDB_PASSWORD: process.env.PDB_PASSWORD ? '***' : 'Not set',
-    NODE_ENV: process.env.NODE_ENV || 'production'
-  });
+  // console.log('Environment Variables:', {
+  //   PDB_HOST: process.env.PDB_HOST ? '***' : 'Not set',
+  //   PDB_PORT: process.env.PDB_PORT || 'Not set (using default 5432)',
+  //   PDB_NAME: process.env.PDB_NAME ? '***' : 'Not set',
+  //   PDB_USER: process.env.PDB_USER ? '***' : 'Not set',
+  //   PDB_PASSWORD: process.env.PDB_PASSWORD ? '***' : 'Not set',
+  //   NODE_ENV: process.env.NODE_ENV || 'development'
+  // });
   
   try {
     console.log('Attempting to connect to database...');
@@ -77,10 +78,10 @@ const testConnection = async () => {
     
     return true;
   } catch (error) {
-    console.error('❌ UNABLE TO CONNECT TO THE DATABASE');
-    console.error('Error name:', error.name);
-    console.error('Error code:', error.parent?.code || 'N/A');
-    console.error('Error message:', error.message);
+    // console.error('❌ UNABLE TO CONNECT TO THE DATABASE');
+    // console.error('Error name:', error.name);
+    // console.error('Error code:', error.parent?.code || 'N/A');
+    // console.error('Error message:', error.message);
     
     if (error.original) {
       console.error('Original error:', {
@@ -92,18 +93,18 @@ const testConnection = async () => {
     
     // Log specific connection issues
     if (error.name === 'SequelizeConnectionRefusedError') {
-      console.error('🔌 Connection refused. Check if:');
-      console.error('1. Database server is running');
-      console.error('2. Host and port are correct');
-      console.error('3. Firewall allows connections');
+      // console.error('🔌 Connection refused. Check if:');
+      // console.error('1. Database server is running');
+      // console.error('2. Host and port are correct');
+      // console.error('3. Firewall allows connections');
     } else if (error.name === 'SequelizeAccessDeniedError') {
-      console.error('🔑 Authentication failed. Check if:');
-      console.error('1. Username and password are correct');
-      console.error('2. User has proper permissions');
+      // console.error('🔑 Authentication failed. Check if:');
+      // console.error('1. Username and password are correct');
+      // console.error('2. User has proper permissions');
     } else if (error.name === 'SequelizeDatabaseError') {
-      console.error('💾 Database error. Check if:');
-      console.error('1. Database exists');
-      console.error('2. Database is accessible');
+      // console.error('💾 Database error. Check if:');
+      // console.error('1. Database exists');
+      // console.error('2. Database is accessible');
     }
     
     return false;

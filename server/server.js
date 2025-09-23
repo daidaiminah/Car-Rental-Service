@@ -6,11 +6,17 @@ import authRoute from "./routers/authRoute.js";
 import carRoute from "./routers/carRoute.js";
 import customerRoute from "./routers/customerRoute.js";
 import rentalRoutes from "./routers/rentalRoutes.js";
+import userRoute from "./routers/userRoute.js";
+import reviewRoutes from "./routers/reviewRoutes.js";
+import notificationRoutes from "./routers/notificationRoutes.js";
 import cors from 'cors';
 import { createApiUser } from "./utils/momo.js";
 import { generateApiKey } from "./utils/momo.js";
-import { testConnection } from "./config/database.js";
 import { getAccessToken } from "./utils/momo.js";
+import { testConnection } from "./config/database.js";
+import { createCheckoutSession } from "./utils/stripe.js";
+import paymentRoutes from "./routers/paymentRoutes.js";
+
 
 const app = express();
 
@@ -25,36 +31,22 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Increase payload size limit to 50MB
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json()); 
+app.use(express.urlencoded({ extended: true }));
 
-// Serve static files from the public directory
+// --- Static File Serving ---
 import path from 'path';
 import { fileURLToPath } from 'url';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Ensure uploads directory exists
-import fs from 'fs';
-const uploadsDir = path.join(__dirname, 'public', 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-// Serve static files
-console.log('Serving static files from:', path.join(__dirname, 'public'));
+// Serve all static files from the 'public' directory
+// This makes '/uploads/avatars/image.jpg' accessible via 'http://localhost:3001/uploads/avatars/image.jpg'
 app.use(express.static(path.join(__dirname, 'public')));
+// --- End Static File Serving ---
 
-// Explicitly serve uploads directory
-app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads'), {
-  setHeaders: (res, path) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-  }
-}));
-
-
+// Root route
 app.get("/", (req, res) => {
     res.send("Car Rental API - Welcome!");
 });
@@ -73,22 +65,31 @@ app.get("/generateApiKey", (req, res) => {
       message: "Api Key generated successfully",
   })
   console.log(apiKey)
-});
+ });
 
-app.get("/getAccessToken", (req, res) => {
-  const accessToken = getAccessToken();
-  res.json({
+app.get("/getAccessToken", async (req, res) => {
+  try {
+    const accessToken = await getAccessToken();
+    res.json({
       message: "Access token retrieved successfully",
       accessToken,
-  })
-  console.log(accessToken)
-})
+    });
+  } catch (error) {
+    console.error('Error getting access token:', error);
+    res.status(500).json({ message: 'Failed to get access token' });
+  }
+});
 
-// API Routes
+// Mount API routes
 app.use("/api/auth", authRoute);
 app.use("/api/cars", carRoute);
 app.use("/api/customers", customerRoute);
 app.use("/api/rentals", rentalRoutes);
+app.use("/api/users", userRoute);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/payments", paymentRoutes);
+
 
 // Set default port to 3001 if not specified in environment
 const PORT = process.env.PORT || 3001;

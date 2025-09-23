@@ -73,14 +73,20 @@ export default (sequelize, DataTypes) => {
     }
   );
 
-  Car.associate = (models) => {
-    Car.hasMany(models.Rental, {
-      foreignKey: "carId",
-      as: "rentals",
-    });
+  Car.associate = function(models) {
     Car.belongsTo(models.User, {
-      foreignKey: "ownerId",
-      as: "owner",
+      foreignKey: 'ownerId',
+      as: 'owner'
+    });
+    
+    Car.hasMany(models.Rental, {
+      foreignKey: 'carId',
+      as: 'rentals'
+    });
+    
+    Car.hasMany(models.Review, {
+      foreignKey: 'carId',
+      as: 'reviews'
     });
   };
 

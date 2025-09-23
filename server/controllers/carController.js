@@ -276,7 +276,79 @@ export const getCarsByOwner = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Failed to get cars by owner',
-      error: process.env.NODE_ENV === 'production' ? error.message : 'Internal server error'
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+};
+
+// Get available cars for a date range
+export const getAvailableCars = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Start date and end date are required"
+      });
+    }
+
+    // Normalize dates to avoid timezone issues. 
+    // Set to the beginning of the start day and end of the end day.
+    const start = new Date(startDate + 'T00:00:00.000Z');
+    const end = new Date(endDate + 'T23:59:59.999Z');
+
+    console.log(`[getAvailableCars] Checking availability from: ${start.toISOString()} to: ${end.toISOString()}`);
+
+    // Find all cars that are rented during the selected period.
+    // A car is considered unavailable if its rental period overlaps with the requested period.
+    // Overlap conditions:
+    // 1. Existing rental starts during the requested period.
+    // 2. Existing rental ends during the requested period.
+    // 3. Existing rental encapsulates the requested period.
+    const rentedCars = await db.Rental.findAll({
+      where: {
+        status: {
+          [db.Sequelize.Op.notIn]: ['cancelled', 'completed'],
+        },
+        // Check for date overlaps: A car is unavailable if an existing rental period
+        // starts before the new booking ends AND ends after the new booking starts.
+        startDate: {
+          [db.Sequelize.Op.lt]: end,
+        },
+        endDate: {
+          [db.Sequelize.Op.gt]: start,
+        },
+      },
+      attributes: ['carId']
+    });
+
+    const rentedCarIds = rentedCars.map(rental => rental.carId);
+    console.log(`[getAvailableCars] Found rented car IDs for the period:`, rentedCarIds);
+
+    // Get all available cars that are not in the rented list
+    const availableCars = await db.Car.findAll({
+      where: {
+        id: { [db.Sequelize.Op.notIn]: rentedCarIds },
+        isAvailable: true
+      },
+      attributes: ['id', 'make', 'model', 'year', 'type', 'rentalPricePerDay', 'imageUrl', 'seats', 'transmission', 'fuelType']
+    });
+
+    console.log(`[getAvailableCars] Found ${availableCars.length} available cars.`);
+    console.log(`[getAvailableCars] Available cars:`, availableCars);
+
+    return res.status(200).json({
+      success: true,
+      count: availableCars.length,
+      data: availableCars
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to retrieve available cars",
+      error: error.message
     });
   }
 };
@@ -301,7 +373,7 @@ export const getFeaturedCars = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to retrieve featured cars",
-      error: process.env.NODE_ENV === 'production' ? error.message : 'Internal server error'
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
 };

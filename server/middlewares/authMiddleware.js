@@ -18,19 +18,45 @@ const protect = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
 
       // Get user from the token
-      req.user = await db.User.findByPk(decoded.id, {
+      const user = await db.User.findByPk(decoded.id, {
         attributes: { exclude: ['password'] } // Don't return the password
       });
 
+      if (!user) {
+        return res.status(401).json({ 
+          success: false,
+          message: 'Not authorized, user not found' 
+        });
+      }
+
+      // Attach user to request
+      req.user = user;
       next();
     } catch (error) {
       console.error('Token verification failed:', error);
-      res.status(401).json({ message: 'Not authorized, token failed' });
+      if (error.name === 'JsonWebTokenError') {
+        return res.status(401).json({ 
+          success: false,
+          message: 'Not authorized, invalid token' 
+        });
+      } else if (error.name === 'TokenExpiredError') {
+        return res.status(401).json({ 
+          success: false,
+          message: 'Not authorized, token expired' 
+        });
+      }
+      return res.status(401).json({ 
+        success: false,
+        message: 'Not authorized, authentication failed' 
+      });
     }
   }
 
   if (!token) {
-    res.status(401).json({ message: 'Not authorized, no token' });
+    return res.status(401).json({ 
+      success: false,
+      message: 'Not authorized, no token provided' 
+    });
   }
 };
 

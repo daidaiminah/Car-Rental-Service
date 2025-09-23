@@ -1,5 +1,6 @@
 import db from "../models/index.js";
 import { Op } from 'sequelize';
+import { sendNotification } from '../utils/notificationService.js';
 
 const Rental = db.Rental;
 const Car = db.Car;
@@ -16,8 +17,17 @@ const calculateDays = (startDate, endDate) => {
 // Create a new rental
 export const createRental = async (req, res) => {
   try {
-    const { carId, startDate, endDate } = req.body;
-    const userId = req.user.id; // Get user ID from auth middleware
+    const { carId, startDate, endDate, pickupAddress, pickupLocation, dropoffLocation } = req.body;
+    
+    // Check if user is authenticated
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+    
+    const userId = req.user.id;
     
     // Validate required fields
     if (!carId || !startDate || !endDate) {
@@ -33,14 +43,6 @@ export const createRental = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: `Car with ID ${carId} not found`
-      });
-    }
-
-    // Check if car is available
-    if (!car.isAvailable) {
-      return res.status(400).json({
-        success: false,
-        message: `Car with ID ${carId} is not available for rent`
       });
     }
 
@@ -108,26 +110,62 @@ export const createRental = async (req, res) => {
     }
 
     // Calculate number of days and total cost
-    const days = calculateDays(startDate, endDate);
-    const totalCost = days * car.rentalPricePerDay;
+    const totalDays = calculateDays(startDate, endDate);
+    const totalCost = car.rentalPricePerDay * totalDays;
 
-    // Create the rental record
-    const newRental = await Rental.create({
+    // Use a transaction to ensure the rental is created before we proceed
+    const result = await db.sequelize.transaction(async (t) => {
+      const rental = await Rental.create({
       carId,
       userId,
       startDate: start,
       endDate: end,
       totalCost,
       status: 'pending',
-      paymentStatus: 'pending'
+      paymentStatus: 'pending',
+      totalDays,
+      dailyRate: car.rentalPricePerDay,
+      pickupLocation: pickupLocation || 'Not specified',
+      dropoffLocation: dropoffLocation || 'Same as pickup',
+      paymentMethod: req.body.paymentMethod || 'credit_card'
+    }, { transaction: t });
+
+      // Notify car owner about the new rental request
+      try {
+        const owner = await User.findByPk(car.ownerId, { transaction: t });
+        if (owner) {
+          await sendNotification({
+            userId: owner.id,
+            title: 'New Rental Request',
+            message: `You have a new rental request for your ${car.make} ${car.model}`,
+            type: 'rental_request',
+            data: {
+              rentalId: rental.id,
+              carId: car.id,
+              requesterId: user.id,
+              startDate: start,
+              endDate: end
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error sending notification within transaction:', error);
+        // Do not re-throw, as we don't want to fail the rental creation for a notification failure
+      }
+
+      return rental;
     });
+
+    // The transaction has been committed. 'result' is the rental instance.
+    const rental = result;
+
 
     return res.status(201).json({
       success: true,
       message: "Rental created successfully",
       data: {
-        ...newRental.dataValues,
-        days,
+        ...rental.dataValues,
+        totalDays,
         dailyRate: car.rentalPricePerDay
       }
     });
@@ -141,10 +179,11 @@ export const createRental = async (req, res) => {
   }
 };
 
-// Get all rentals for the current user
+// Get all rentals for a user (either current user or specified user ID)
 export const getMyRentals = async (req, res) => {
   try {
-    const userId = req.user.id;
+    // Use the userId from params if provided, otherwise use the authenticated user's ID
+    const userId = req.params.userId || req.user.id;
     
     const rentals = await Rental.findAll({
       where: { userId },
@@ -300,11 +339,13 @@ export const getOwnerRentals = async (req, res) => {
     // Get ownerId from URL params or JWT
     const ownerId = req.params.ownerId || (req.user && req.user.id);
     
-    console.log('Owner ID:', ownerId, 'Type:', typeof ownerId);
+    // Get query parameters
+    const { status, page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
+    
+    console.log('Owner ID:', ownerId, 'Status filter:', status);
     
     if (!ownerId) {
-      const error = new Error('Owner ID is required');
-      console.error('Error:', error.message);
       return res.status(400).json({
         success: false,
         message: 'Owner ID is required',
@@ -315,8 +356,6 @@ export const getOwnerRentals = async (req, res) => {
     // Convert ownerId to number if it's a string
     const numericOwnerId = Number(ownerId);
     if (isNaN(numericOwnerId)) {
-      const error = new Error('Invalid owner ID format');
-      console.error('Error:', error.message, { ownerId });
       return res.status(400).json({
         success: false,
         message: 'Owner ID must be a number',
@@ -324,15 +363,18 @@ export const getOwnerRentals = async (req, res) => {
       });
     }
     
-    // First, get all cars owned by this user
-    const ownerCars = await Car.findAll({
-      where: { ownerId: numericOwnerId }
+    // Find all cars owned by this user
+    const { count: totalCars, rows: ownerCars } = await Car.findAndCountAll({
+      where: { userId: numericOwnerId },
+      attributes: ['id']
     });
     
-    if (!ownerCars || ownerCars.length === 0) {
+    if (totalCars === 0) {
       return res.status(200).json({
         success: true,
         count: 0,
+        totalPages: 0,
+        currentPage: parseInt(page),
         data: []
       });
     }
@@ -340,41 +382,50 @@ export const getOwnerRentals = async (req, res) => {
     // Get the car IDs
     const carIds = ownerCars.map(car => car.id);
     
-    // Find all rentals for these cars
-    const rentals = await Rental.findAll({
-      where: {
-        carId: {
-          [Op.in]: carIds
-        }
-      },
+    // Build where clause for rentals
+    const rentalWhere = {
+      carId: { [Op.in]: carIds }
+    };
+    
+    // Add status filter if provided
+    if (status && ['pending', 'confirmed', 'cancelled', 'completed'].includes(status)) {
+      rentalWhere.status = status;
+    }
+    
+    // Find all rentals for these cars with pagination
+    const { count: totalRentals, rows: rentals } = await Rental.findAndCountAll({
+      where: rentalWhere,
       include: [
         { 
           model: Car, 
           as: "car",
-          attributes: ['id', 'make', 'model', 'year', 'imageUrl', 'type', 'ownerId']
+          attributes: ['id', 'make', 'model', 'year', 'imageUrl', 'type', 'ownerId', 'licensePlate']
         },
         {
           model: User,
           as: 'user',
-          attributes: ['id', 'name', 'email'] // Only include non-sensitive user information
+          attributes: ['id', 'name', 'email', 'phone', 'profileImage']
         }
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt', 'DESC']],
+      limit: parseInt(limit),
+      offset: offset,
+      distinct: true
     });
     
-    // Double-check that all returned rentals are for cars owned by this user
-    // This is a secondary security measure
-    const validRentals = rentals.filter(rental => 
-      rental.car && rental.car.ownerId === ownerId
-    );
+    // Calculate total pages
+    const totalPages = Math.ceil(totalRentals / limit);
     
     return res.status(200).json({
       success: true,
-      count: validRentals.length,
-      data: validRentals
+      count: rentals.length,
+      total: totalRentals,
+      totalPages: totalPages,
+      currentPage: parseInt(page),
+      data: rentals
     });
   } catch (error) {
-    console.error(error);
+    console.error('Error in getOwnerRentals:', error);
     return res.status(500).json({
       success: false,
       message: "Failed to retrieve rentals for your cars",
@@ -382,6 +433,251 @@ export const getOwnerRentals = async (req, res) => {
     });
   }
 };
+
+// Update rental status (confirm/reject/cancel)
+export const updateRentalStatus = async (req, res) => {
+  const transaction = await db.sequelize.transaction();
+  
+  try {
+    const { rentalId } = req.params;
+    const { status, rejectionReason } = req.body;
+    const userId = req.user.id;
+
+    // Validate status
+    const validStatuses = ['pending', 'confirmed', 'rejected', 'cancelled', 'completed'];
+    if (!validStatuses.includes(status)) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
+      });
+    }
+
+    // Find the rental with car and user details
+    const rental = await Rental.findOne({
+      where: { id: rentalId },
+      include: [
+        {
+          model: Car,
+          as: 'car',
+          attributes: ['id', 'ownerId', 'make', 'model']
+        },
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'name', 'email']
+        }
+      ],
+      transaction
+    });
+
+    if (!rental) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Rental not found'
+      });
+    }
+
+    // Check if user has permission (must be owner or admin)
+    if (rental.car.ownerId !== userId && !req.user.isAdmin) {
+      await transaction.rollback();
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to update this rental'
+      });
+    }
+
+    // Validate status transition
+    const validTransitions = {
+      'pending': ['confirmed', 'rejected', 'cancelled'],
+      'confirmed': ['completed', 'cancelled'],
+      'rejected': [],
+      'cancelled': [],
+      'completed': []
+    };
+
+    if (!validTransitions[rental.status].includes(status)) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: `Cannot change status from ${rental.status} to ${status}`
+      });
+    }
+
+    // Store old status for notification
+    const oldStatus = rental.status;
+    
+    // Update rental status
+    rental.status = status;
+    
+    // Add rejection reason if provided
+    if (status === 'rejected' && rejectionReason) {
+      rental.rejectionReason = rejectionReason;
+    }
+    
+    // Update payment status if needed
+    if (status === 'confirmed') {
+      rental.paymentStatus = 'paid';
+    } else if (status === 'cancelled') {
+      rental.paymentStatus = 'refunded';
+    }
+    
+    await rental.save({ transaction });
+
+    // If confirmed, mark car as unavailable during rental period
+    if (status === 'confirmed') {
+      // Here you would typically implement actual car availability logic
+      console.log(`Car ${rental.carId} marked as booked from ${rental.startDate} to ${rental.endDate}`);
+    }
+
+    // Notify the renter about the status update
+    try {
+      let notificationTitle = '';
+      let notificationMessage = '';
+      
+      switch (status) {
+        case 'confirmed':
+          notificationTitle = 'Rental Confirmed';
+          notificationMessage = `Your rental for ${rental.car.make} ${rental.car.model} has been confirmed!`;
+          break;
+        case 'rejected':
+          notificationTitle = 'Rental Rejected';
+          notificationMessage = `Your rental request for ${rental.car.make} ${rental.car.model} has been rejected.`;
+          if (rejectionReason) {
+            notificationMessage += ` Reason: ${rejectionReason}`;
+          }
+          break;
+        case 'cancelled':
+          notificationTitle = 'Rental Cancelled';
+          notificationMessage = `Your rental for ${rental.car.make} ${rental.car.model} has been cancelled.`;
+          break;
+        case 'completed':
+          notificationTitle = 'Rental Completed';
+          notificationMessage = `Your rental for ${rental.car.make} ${rental.car.model} has been marked as completed.`;
+          break;
+      }
+
+      if (notificationTitle && notificationMessage) {
+        await sendNotification({
+          userId: rental.userId,
+          title: notificationTitle,
+          message: notificationMessage,
+          type: 'rental_status_update',
+          data: {
+            rentalId: rental.id,
+            status: rental.status,
+            carId: rental.carId,
+            oldStatus,
+            rejectionReason: status === 'rejected' ? rejectionReason : undefined
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error sending notification:', error);
+      // Don't fail the request if notification fails
+    }
+
+    await transaction.commit();
+    
+    return res.status(200).json({
+      success: true,
+      message: `Rental ${status} successfully`,
+      data: rental
+    });
+    
+  } catch (error) {
+    await transaction.rollback();
+    console.error('Error in updateRentalStatus:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error updating rental status',
+      error: error.message
+    });
+  }
+};
+
+// Update rental status (confirm/reject/cancel)
+// export const updateRentalStatus = async (req, res) => {
+//   try {
+//     const { rentalId } = req.params;
+//     const { status } = req.body;
+//     const userId = req.user.id;
+
+//     if (!['confirmed', 'rejected', 'cancelled'].includes(status)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Invalid status. Must be one of: confirmed, rejected, cancelled'
+//       });
+//     }
+
+//     const rental = await Rental.findOne({
+//       where: { id: rentalId },
+//       include: [
+//         {
+//           model: Car,
+//           as: 'car',
+//           attributes: ['id', 'ownerId']
+//         }
+//       ]
+//     });
+
+//     if (!rental) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'Rental not found'
+//       });
+//     }
+
+//     // Check if user has permission (must be owner or admin)
+//     if (rental.car.ownerId !== userId && !req.user.isAdmin) {
+//       return res.status(403).json({
+//         success: false,
+//         message: 'Not authorized to update this rental'
+//       });
+//     }
+
+//     // Update rental status
+//     rental.status = status === 'rejected' ? 'cancelled' : status;
+//     await rental.save();
+
+//     // If confirmed, mark car as unavailable during rental period
+//     if (status === 'confirmed') {
+//       // Here you would typically implement actual car availability logic
+//       // For example, you might have a separate table for car availability
+//       console.log(`Car ${rental.carId} marked as booked from ${rental.startDate} to ${rental.endDate}`);
+//     }
+
+//     // Notify the renter about the status update
+//     try {
+//       await sendNotification({
+//         userId: rental.userId,
+//         title: `Rental ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+//         message: `Your rental request has been ${status}`,
+//         type: 'rental_status_update',
+//         data: {
+//           rentalId: rental.id,
+//           status: rental.status
+//         }
+//       });
+//     } catch (error) {
+//       console.error('Error sending notification:', error);
+//     }
+
+//     return res.status(200).json({
+//       success: true,
+//       message: `Rental ${status} successfully`,
+//       data: rental
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({
+//       success: false,
+//       message: 'Error updating rental status',
+//       error: error.message
+//     });
+//   }
+// };
 
 export const deleteRental = async (req, res) => {
   try {

@@ -134,37 +134,38 @@ const seedDatabase = async () => {
     const createdCars = await Car.bulkCreate(cars);
     console.log(`Created ${createdCars.length} cars`);
 
-    // Create Rentals
-    const today = new Date();
-    const nextWeek = new Date();
-    nextWeek.setDate(today.getDate() + 7);
+    // Create Rentals (in the past)
+    const lastMonth = new Date();
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
+    const lastMonthPlusAWeek = new Date(lastMonth);
+    lastMonthPlusAWeek.setDate(lastMonth.getDate() + 7);
 
     const rentals = [
       {
         userId: users[0].id,
         carId: createdCars[0].id,
-        startDate: today,
-        endDate: nextWeek,
+        startDate: lastMonth,
+        endDate: lastMonthPlusAWeek,
         totalCost: 300.00,
-        status: 'confirmed',
+        status: 'completed', // Mark as completed since it's in the past
         paymentStatus: 'paid',
         totalDays: 7,
         dailyRate: createdCars[0].rentalPricePerDay,
         paymentMethod: 'credit_card',
-        paymentDate: today
+        paymentDate: lastMonth
       },
       {
         userId: users[1].id,
         carId: createdCars[1].id,
-        startDate: today,
-        endDate: nextWeek,
+        startDate: lastMonth,
+        endDate: lastMonthPlusAWeek,
         totalCost: 350.00,
-        status: 'confirmed',
+        status: 'completed', // Mark as completed
         paymentStatus: 'paid',
         totalDays: 7,
         dailyRate: createdCars[1].rentalPricePerDay,
         paymentMethod: 'mobile_money',
-        paymentDate: today
+        paymentDate: lastMonth
       }
     ];
 

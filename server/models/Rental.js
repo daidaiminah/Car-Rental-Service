@@ -77,6 +77,14 @@ export default (sequelize, DataTypes) => {
       notes: {
         type: DataTypes.TEXT,
       },
+      pickupLocation: {
+        type: DataTypes.STRING,
+        allowNull: true
+      },
+      dropoffLocation: {
+        type: DataTypes.STRING,
+        allowNull: true
+      },
     },
     {
       timestamps: true,
@@ -85,19 +93,25 @@ export default (sequelize, DataTypes) => {
     }
   );
 
-  Rental.associate = (models) => {
-    // Association with Car
-    Rental.belongsTo(models.Car, {
-      foreignKey: "carId",
-      as: "car",
-      onDelete: "CASCADE",
+  Rental.associate = function(models) {
+    Rental.belongsTo(models.User, {
+      foreignKey: 'userId',
+      as: 'user'
     });
     
-    // Association with User
-    Rental.belongsTo(models.User, {
-      foreignKey: "userId",
-      as: "user",
-      onDelete: "CASCADE"
+    Rental.belongsTo(models.Car, {
+      foreignKey: 'carId',
+      as: 'car'
+    });
+    
+    Rental.hasOne(models.Payment, {
+      foreignKey: 'rentalId',
+      as: 'payment'
+    });
+    
+    Rental.hasOne(models.Review, {
+      foreignKey: 'rentalId',
+      as: 'review'
     });
   };
 
