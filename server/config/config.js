@@ -26,6 +26,12 @@ export default {
     database: process.env.PDB_NAME,
     host: process.env.PDB_HOST,
     dialect: "postgres",
-    port: process.env.PDB_PORT
+    port: process.env.PDB_PORT,
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      }
+    }
   }
 }
