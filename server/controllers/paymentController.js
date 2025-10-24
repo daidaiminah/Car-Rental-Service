@@ -1,6 +1,7 @@
 import { processPayment, verifyMomoPayment } from '../services/paymentService.js';
 import db from '../models/index.js';
 import Stripe from 'stripe';
+import { emitToUser } from '../socket/index.js';
 
 const Payment = db.Payment;
 const Rental = db.Rental;
@@ -50,6 +51,12 @@ export const createPayment = async (req, res) => {
     if (paymentResult.success) {
       await rental.update({ status: 'confirmed' });
     }
+
+    emitToUser(userId, 'payment:updated', {
+      action: 'created',
+      paymentId: payment.id,
+      status: payment.paymentStatus,
+    });
 
     res.status(200).json({
       success: true,
@@ -216,8 +223,8 @@ export const createCheckoutSession = async (req, res) => {
         },
       ],
       mode: 'payment',
-      success_url: `${process.env.CLIENT_URL}/booking/success?session_id={CHECKOUT_SESSION_ID}&rental_id=${rental.id}`,
-      cancel_url: `${process.env.CLIENT_URL}/booking/cancel?rental_id=${rental.id}`,
+      success_url: `${process.env.CLIENT_URL  || 'http://localhost:5000'}/booking-success?session_id={CHECKOUT_SESSION_ID}&rental_id=${rental.id}`,
+      cancel_url: `${process.env.CLIENT_URL  || 'http://localhost:5000'}/booking-cancel`,
       customer_email: userEmail,
       client_reference_id: rental.id.toString(),
       metadata: {
@@ -242,6 +249,129 @@ export const createCheckoutSession = async (req, res) => {
   } catch (error) {
     console.error('Error creating checkout session:', error);
     res.status(500).json({ error: 'Failed to create checkout session' });
+    }
+  };
+
+export const getUserPaymentSummary = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const payments = await Payment.findAll({
+      where: { userId },
+      include: [
+        {
+          model: Rental,
+          as: 'rental',
+          attributes: [
+            'id',
+            'startDate',
+            'endDate',
+            'status',
+            'totalDays',
+            'totalCost',
+          ],
+          include: [
+            {
+              model: Car,
+              as: 'car',
+              attributes: [
+                'id',
+                'make',
+                'model',
+                'year',
+                'rentalPricePerDay',
+                'imageUrl',
+              ],
+            },
+          ],
+        },
+      ],
+      order: [['paymentDate', 'DESC']],
+    });
+
+    const transactions = payments.map((payment) => {
+      const rental = payment.rental;
+      const car = rental?.car;
+      const description = car
+        ? `${car.make || ''} ${car.model || ''} ${car.year || ''}`.trim()
+        : 'Rental payment';
+
+      return {
+        id: payment.paymentReference || payment.id,
+        paymentId: payment.id,
+        amount: Number(payment.amount),
+        currency: payment.currency,
+        status: payment.paymentStatus,
+        paymentMethod: payment.paymentMethod,
+        paymentDate: payment.paymentDate,
+        description: rental
+          ? `${description} - ${rental.totalDays || 0} day(s)`
+          : description,
+        rental: rental
+          ? {
+              id: rental.id,
+              startDate: rental.startDate,
+              endDate: rental.endDate,
+              status: rental.status,
+              totalDays: rental.totalDays,
+              totalCost: Number(rental.totalCost || payment.amount),
+            }
+          : null,
+        car: car
+          ? {
+              id: car.id,
+              make: car.make,
+              model: car.model,
+              year: car.year,
+              imageUrl: car.imageUrl,
+              dailyRate: Number(car.rentalPricePerDay || 0),
+            }
+          : null,
+        receiptUrl:
+          payment.gateway === 'stripe'
+            ? `https://dashboard.stripe.com/payments/${payment.paymentReference || payment.id}`
+            : null,
+      };
+    });
+
+    const methodsMap = new Map();
+    payments.forEach((payment) => {
+      const method = payment.paymentMethod || 'unknown';
+      if (!methodsMap.has(method)) {
+        const referenceDigits = (payment.paymentReference || '')
+          .replace(/\D/g, '')
+          .slice(-4);
+
+        methodsMap.set(method, {
+          id: `${method}-${payment.id}`,
+          type: method,
+          last4: referenceDigits || 'N/A',
+          isDefault: methodsMap.size === 0,
+          usageCount: 1,
+        });
+      } else {
+        const existing = methodsMap.get(method);
+        methodsMap.set(method, {
+          ...existing,
+          usageCount: existing.usageCount + 1,
+        });
+      }
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        transactions,
+        paymentMethods: Array.from(methodsMap.values()),
+      },
+    });
+  } catch (error) {
+    console.error('Error loading payment summary:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to load payments',
+      error: error.message,
+    });
   }
 };
 
@@ -305,7 +435,7 @@ const handleCheckoutSessionCompleted = async (session) => {
       });
 
       // Create payment record
-      await Payment.create({
+      const recordedPayment = await Payment.create({
         rentalId: rental.id,
         userId: rental.userId,
         amount: session.amount_total / 100, // Convert back to dollars
@@ -320,6 +450,12 @@ const handleCheckoutSessionCompleted = async (session) => {
 
       // TODO: Send confirmation email to the customer
       console.log(`Payment successful for rental ${rental.id}`);
+
+      emitToUser(rental.userId, 'payment:updated', {
+        action: 'confirmed',
+        paymentId: recordedPayment.id,
+        status: recordedPayment.paymentStatus,
+      });
     }
   } catch (error) {
     console.error('Error handling checkout.session.completed:', error);
@@ -336,16 +472,21 @@ const handlePaymentIntentSucceeded = async (paymentIntent) => {
       where: { paymentReference: paymentIntent.id }
     });
 
-    if (rental && rental.status !== 'confirmed') {
-      await rental.update({
-        status: 'confirmed',
-        paymentStatus: 'paid',
-        paymentDate: new Date(),
-        updatedAt: new Date()
-      });
-      
-      console.log(`Updated rental ${rental.id} status to confirmed`);
-    }
+      if (rental && rental.status !== 'confirmed') {
+        await rental.update({
+          status: 'confirmed',
+          paymentStatus: 'paid',
+          paymentDate: new Date(),
+          updatedAt: new Date()
+        });
+        
+        console.log(`Updated rental ${rental.id} status to confirmed`);
+        emitToUser(rental.userId, 'payment:updated', {
+          action: 'intent_succeeded',
+          rentalId: rental.id,
+          status: 'paid',
+        });
+      }
   } catch (error) {
     console.error('Error handling payment_intent.succeeded:', error);
   }
@@ -360,15 +501,20 @@ const handlePaymentIntentFailed = async (paymentIntent) => {
       where: { paymentReference: paymentIntent.id }
     });
 
-    if (rental) {
-      await rental.update({
-        status: 'payment_failed',
-        paymentStatus: 'failed',
-        updatedAt: new Date()
-      });
-      
-      console.log(`Updated rental ${rental.id} status to payment_failed`);
-    }
+      if (rental) {
+        await rental.update({
+          status: 'payment_failed',
+          paymentStatus: 'failed',
+          updatedAt: new Date()
+        });
+        
+        console.log(`Updated rental ${rental.id} status to payment_failed`);
+        emitToUser(rental.userId, 'payment:updated', {
+          action: 'intent_failed',
+          rentalId: rental.id,
+          status: 'failed',
+        });
+      }
   } catch (error) {
     console.error('Error handling payment_intent.payment_failed:', error);
   }
@@ -380,5 +526,6 @@ export default {
   stripeWebhook,
   handleSuccessfulPayment,
   createCheckoutSession,
-  handleStripeWebhook
+  handleStripeWebhook,
+  getUserPaymentSummary
 };

@@ -3,25 +3,27 @@ import { Model } from 'sequelize';
 export default (sequelize, DataTypes) => {
   class Review extends Model {
     static associate(models) {
-      // Define associations
       Review.belongsTo(models.User, {
         foreignKey: 'userId',
         as: 'user'
       });
-      
       Review.belongsTo(models.Car, {
         foreignKey: 'carId',
         as: 'car'
       });
-      
       Review.belongsTo(models.Rental, {
         foreignKey: 'rentalId',
         as: 'rental'
       });
     }
   }
-  
+
   Review.init({
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4, // Sequelize auto-generates UUID
+      primaryKey: true,
+    },
     rating: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -39,45 +41,28 @@ export default (sequelize, DataTypes) => {
       }
     },
     userId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'Users',
-        key: 'id'
-      },
-      onUpdate: 'CASCADE',
-      onDelete: 'CASCADE'
+      type: DataTypes.UUID,
+      allowNull: false
     },
     carId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'Cars',
-        key: 'id'
-      },
-      onUpdate: 'CASCADE',
-      onDelete: 'CASCADE'
+      type: DataTypes.UUID,
+      allowNull: false
     },
     rentalId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'Rentals',
-        key: 'id'
-      },
-      onUpdate: 'CASCADE',
-      onDelete: 'CASCADE'
+      type: DataTypes.UUID,
+      allowNull: false
     }
   }, {
     sequelize,
     modelName: 'Review',
+    tableName: 'Reviews',
     indexes: [
       {
         unique: true,
-        fields: ['userId', 'rentalId']
+        fields: ['userId', 'rentalId'] // one review per rental per user
       }
     ]
   });
-  
+
   return Review;
 };

@@ -1,5 +1,6 @@
 import db from "../models/index.js";
 import { Op } from 'sequelize';
+import { emitToUser } from '../socket/index.js';
 
 const Notification = db.Notification;
 
@@ -24,8 +25,14 @@ export const sendNotification = async ({ userId, title, message, type, data = {}
       isRead: false,
     });
 
-    // Here you would typically also send a real-time notification (e.g., via WebSocket)
-    // For example: socketService.notifyUser(userId, notification);
+    emitToUser(userId, 'notification:new', {
+      id: notification.id,
+      title: notification.title,
+      message: notification.message,
+      type: notification.type,
+      createdAt: notification.createdAt,
+      data: notification.data,
+    });
 
     return notification;
   } catch (error) {
@@ -73,6 +80,18 @@ export const markAsRead = async (notificationIds) => {
         },
       }
     );
+
+    if (updatedCount > 0) {
+      const affectedNotifications = await Notification.findAll({
+        where: { id: { [Op.in]: ids } },
+      });
+
+      affectedNotifications.forEach((notification) => {
+        emitToUser(notification.userId, 'notification:read', {
+          id: notification.id,
+        });
+      });
+    }
 
     return updatedCount;
   } catch (error) {

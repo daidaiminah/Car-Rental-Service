@@ -2,12 +2,17 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
+    await queryInterface.sequelize.query('CREATE EXTENSION IF NOT EXISTS "pgcrypto";');
     await queryInterface.createTable('Cars', {
-      id: {
-        type: Sequelize.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-        allowNull: false,
+      id: { type: Sequelize.UUID,
+        defaultValue: Sequelize.literal('gen_random_uuid()'), primaryKey: true, allowNull: false,
+      },
+      ownerId: { type: Sequelize.UUID, allowNull: false,
+        references: {
+          model: 'Users',
+          key: 'id',
+        },
+        onDelete: 'CASCADE',
       },
       make: { type: Sequelize.STRING, allowNull: false },
       model: { type: Sequelize.STRING, allowNull: false },
@@ -35,7 +40,7 @@ module.exports = {
         defaultValue: [],
       },
       ownerId: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.UUID,
         references: {
           model: 'Users',
           key: 'id',
@@ -54,6 +59,7 @@ module.exports = {
         defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       }
     });
+    
   },
 
   async down(queryInterface, Sequelize) {

@@ -1,7 +1,7 @@
 import express from 'express';
 import { createPaymentIntent, confirmPayment } from '../services/stripeService.js';
 import { protect } from '../middlewares/authMiddleware.js';
-import { createCheckoutSession, handleStripeWebhook } from '../controllers/paymentController.js';
+import { createCheckoutSession, handleStripeWebhook, getUserPaymentSummary } from '../controllers/paymentController.js';
 
 const router = express.Router();
 
@@ -10,6 +10,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), handleStripeW
 
 // Create Stripe Checkout Session
 router.post('/create-checkout-session', protect, createCheckoutSession);
+router.get('/my-summary', protect, getUserPaymentSummary);
 
 // Create payment intent
 router.post('/create-payment-intent', protect, async (req, res) => {

@@ -2,12 +2,14 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
+    await queryInterface.sequelize.query('CREATE EXTENSION IF NOT EXISTS "pgcrypto";');
+
     await queryInterface.createTable('Reviews', {
       id: {
-        allowNull: false,
-        autoIncrement: true,
+        type: Sequelize.UUID,
+        defaultValue: Sequelize.literal('gen_random_uuid()'), // generate UUID automatically
         primaryKey: true,
-        type: Sequelize.INTEGER
+        allowNull: false,
       },
       rating: {
         type: Sequelize.INTEGER,
@@ -22,7 +24,7 @@ module.exports = {
         allowNull: true
       },
       userId: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.UUID,
         allowNull: false,
         references: {
           model: 'Users',
@@ -32,7 +34,7 @@ module.exports = {
         onDelete: 'CASCADE'
       },
       carId: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.UUID,
         allowNull: false,
         references: {
           model: 'Cars',
@@ -42,7 +44,7 @@ module.exports = {
         onDelete: 'CASCADE'
       },
       rentalId: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.UUID,
         allowNull: false,
         references: {
           model: 'Rentals',
@@ -63,6 +65,7 @@ module.exports = {
       }
     });
   },
+
   down: async (queryInterface, Sequelize) => {
     await queryInterface.dropTable('Reviews');
   }

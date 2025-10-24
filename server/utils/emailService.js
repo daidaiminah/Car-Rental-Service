@@ -18,36 +18,61 @@ if (!fs.existsSync(TEMPLATES_DIR)) {
 }
 
 // Create transporter with connection pooling
-const transporter = nodemailer.createTransport({
-    pool: true,
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.EMAIL_PORT) || 465,
-    secure: true,
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD
-    },
-    tls: { rejectUnauthorized: false },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 30000,
-    debug: process.env.NODE_ENV === 'development'
-});
+const emailUser = process.env.EMAIL_USER;
+const emailPassword =
+    process.env.EMAIL_APP_PASSWORD || process.env.EMAIL_PASSWORD;
+const emailHost = process.env.EMAIL_HOST || 'smtp.gmail.com';
+const emailPort = parseInt(process.env.EMAIL_PORT, 10) || 465;
 
-// Verify connection
-transporter.verify((error) => {
-    if (error) {
-        console.error('Email server connection error:', error);
-    } else {
-        console.log('Email server is ready');
-    }
-});
+let transporter = null;
+
+if (emailUser && emailPassword) {
+    transporter = nodemailer.createTransport({
+        pool: true,
+        host: emailHost,
+        port: emailPort,
+        secure: emailPort === 465,
+        auth: {
+            user: emailUser,
+            pass: emailPassword,
+        },
+        tls: { rejectUnauthorized: false },
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 30000,
+        debug: process.env.NODE_ENV === 'development',
+    });
+
+    transporter
+        .verify()
+        .then(() => {
+            console.log('Email server is ready');
+        })
+        .catch((error) => {
+            console.warn(
+                'Unable to connect to email server. Emails will be queued but not delivered until credentials are corrected.'
+            );
+            if (error?.responseCode === 535) {
+                console.warn(
+                    'Gmail rejected the credentials. Ensure you are using an app password and that IMAP/SMTP access is enabled.'
+                );
+            }
+            if (process.env.NODE_ENV === 'development') {
+                console.warn('Email connection error details:', error.message);
+            }
+        });
+} else {
+    console.warn(
+        'Email credentials are not fully configured (missing EMAIL_USER or EMAIL_PASSWORD). Email sending is disabled.'
+    );
+}
 
 // Email templates
-const templates = {
+export const templates = {
     WELCOME: 'welcome.html',
     PASSWORD_RESET: 'password-reset.html',
-    CONTACT: 'contact.html',
+    CONTACT_CONFIRMATION: 'contact-confirmation.html',
+    CONTACT_NOTIFICATION: 'contact-notification.html',
     NOTIFICATION: 'notification.html'
 };
 
@@ -71,6 +96,12 @@ const loadTemplate = async (templateName, data = {}) => {
 
 // Send email with retry logic
 export const sendEmail = async (options, retries = 2) => {
+    if (!transporter) {
+        throw new Error(
+            'Email service is not configured. Please set EMAIL_USER and EMAIL_PASSWORD (or EMAIL_APP_PASSWORD).'
+        );
+    }
+
     const emailId = uuidv4();
     const { to, subject, text, template, templateData, attachments } = options;
     
@@ -148,6 +179,55 @@ const createDefaultTemplates = async () => {
                 <p>This link will expire in 1 hour.</p>
                 <p>If you didn't request this, please ignore this email.</p>
                 <p>Best regards,<br>Whip In Time Team</p>
+            </body>
+            </html>`
+        },
+        {
+            name: templates.CONTACT_CONFIRMATION,
+            content: `<!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>We Received Your Message</title>
+                <style>body{font-family:Arial,sans-serif;line-height:1.6;max-width:600px;margin:0 auto;padding:20px;background:#f9f9f9;} .panel{background:#fff;padding:20px;border-radius:12px;box-shadow:0 8px 30px rgba(31,41,55,0.08);} .footer{margin-top:24px;font-size:12px;color:#6b7280;text-align:center;}</style>
+            </head>
+            <body>
+                <div class="panel">
+                  <h2 style="color:#1f2937;">Hi {{name}},</h2>
+                  <p>Thanks for reaching out to the Whip In Time team. We’ve received your message and a member of our support staff will follow up shortly.</p>
+                  <p><strong>Summary of your request:</strong></p>
+                  <p><strong>Subject:</strong> {{subject}}</p>
+                  <p><strong>Message:</strong><br>{{message}}</p>
+                  <p>You can reply directly to this email if you need to provide additional details.</p>
+                  <p style="margin-top:24px;">Best regards,<br>The Whip In Time Team</p>
+                </div>
+                <div class="footer">
+                  <p>© ${new Date().getFullYear()} Whip In Time. All rights reserved.</p>
+                </div>
+            </body>
+            </html>`
+        },
+        {
+            name: templates.CONTACT_NOTIFICATION,
+            content: `<!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>New Contact Form Submission</title>
+                <style>body{font-family:Arial,sans-serif;line-height:1.6;max-width:600px;margin:0 auto;padding:20px;background:#f3f4f6;} .panel{background:#fff;padding:20px;border-radius:12px;box-shadow:0 4px 20px rgba(15,23,42,0.08);} .meta{margin-top:16px;font-size:14px;color:#374151;} .meta strong{display:inline-block;width:120px;}</style>
+            </head>
+            <body>
+                <div class="panel">
+                  <h2 style="color:#111827;">New Contact Form Submission</h2>
+                  <p>You received a new message via the website contact form.</p>
+                  <div class="meta">
+                    <p><strong>Name:</strong> {{name}}</p>
+                    <p><strong>Email:</strong> {{email}}</p>
+                    <p><strong>Subject:</strong> {{subject}}</p>
+                  </div>
+                  <p style="margin-top:16px;"><strong>Message:</strong></p>
+                  <p style="white-space:pre-line;border-left:3px solid #6366f1;padding-left:12px;">{{message}}</p>
+                </div>
             </body>
             </html>`
         }

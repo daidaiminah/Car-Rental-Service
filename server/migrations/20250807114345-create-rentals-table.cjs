@@ -3,14 +3,11 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('Rentals', {
-      id: {
-        type: Sequelize.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-        allowNull: false,
+      id: { type: Sequelize.UUID,
+        defaultValue: Sequelize.literal('gen_random_uuid()'), primaryKey: true, allowNull: false,
       },
       carId: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.UUID,
         allowNull: false,
         references: {
           model: 'Cars',
@@ -19,7 +16,7 @@ module.exports = {
         onDelete: 'CASCADE',
       },
       userId: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.UUID,
         allowNull: false,
         references: {
           model: 'Users',
@@ -28,7 +25,7 @@ module.exports = {
         onDelete: 'CASCADE',
       },
       customerId: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.UUID,
         allowNull: true,
         references: {
           model: 'Customers',
@@ -36,6 +33,8 @@ module.exports = {
         },
         onDelete: 'SET NULL',
       },
+      pickupLocation: { type: Sequelize.STRING, allowNull: true },
+      dropoffLocation: { type: Sequelize.STRING, allowNull: true },
       startDate: { type: Sequelize.DATE, allowNull: false },
       endDate: { type: Sequelize.DATE, allowNull: false },
       totalCost: { type: Sequelize.DECIMAL(10, 2), allowNull: false },

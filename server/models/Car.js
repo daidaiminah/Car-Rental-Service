@@ -3,9 +3,9 @@ export default (sequelize, DataTypes) => {
     "Car",
     {
       id: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4, // Sequelize will auto-generate
         primaryKey: true,
-        autoIncrement: true,
       },
       make: {
         type: DataTypes.STRING,
@@ -50,7 +50,7 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.STRING,
       },
       ownerId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.UUID,
         allowNull: false,
         references: {
           model: 'Users',

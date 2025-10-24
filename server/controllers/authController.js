@@ -17,12 +17,15 @@ const generateToken = (id, role = 'customer') => {
 // User Login
 const loginUser = async (req, res) => {
   try {
-    const { email, password, role = 'customer' } = req.body;
-    console.log('Login attempt:', { email, role });
+    const { email, password, role: requestedRole } = req.body;
+    console.log('Login attempt:', { email, requestedRole });
 
     // Validate input
     if (!email || !password) {
-      return res.status(400).json({ message: 'Please provide email and password' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Please provide email and password' 
+      });
     }
 
     // Find user by email
@@ -31,8 +34,17 @@ const loginUser = async (req, res) => {
 
     // Check if user exists and password is correct
     if (user && (await bcrypt.compare(password, user.password))) {
-      // Fix: Don't check role on login - allow users to access their dashboard based on their actual role
-      // Instead of blocking login, we'll return their actual role so frontend can redirect correctly
+      // Check if the user's role matches the requested role (if provided)
+      if (requestedRole && user.role !== requestedRole) {
+        console.log('Login failed: Role mismatch', { 
+          expected: requestedRole, 
+          actual: user.role 
+        });
+        return res.status(403).json({ 
+          success: false,
+          message: `Access denied. This account is registered as a ${user.role}, not a ${requestedRole}.` 
+        });
+      }
       
       // Generate JWT token with user's actual role
       const token = generateToken(user.id, user.role);
@@ -44,7 +56,7 @@ const loginUser = async (req, res) => {
           id: user.id,
           name: user.name,
           email: user.email,
-          role: user.role || 'customer',
+          role: user.role,
           token
         }
       };
@@ -53,7 +65,10 @@ const loginUser = async (req, res) => {
       res.json(responseData);
     } else {
       console.log('Login failed: Invalid credentials');
-      res.status(401).json({ message: 'Invalid email or password' });
+      res.status(401).json({ 
+        success: false,
+        message: 'Invalid email or password' 
+      });
     }
   } catch (error) {
     console.error('Login error:', error);

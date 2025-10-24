@@ -1,4 +1,5 @@
 import express from "express";
+import http from "http";
 import dotenv from "dotenv";
 dotenv.config();
 import db from "./models/index.js";
@@ -9,22 +10,26 @@ import rentalRoutes from "./routers/rentalRoutes.js";
 import userRoute from "./routers/userRoute.js";
 import reviewRoutes from "./routers/reviewRoutes.js";
 import notificationRoutes from "./routers/notificationRoutes.js";
+import contactRoutes from "./routers/contactRoutes.js";
 import cors from 'cors';
-import { createApiUser } from "./utils/momo.js";
-import { generateApiKey } from "./utils/momo.js";
-import { getAccessToken } from "./utils/momo.js";
+// import { createApiUser } from "./utils/momo.js";
+// import { generateApiKey } from "./utils/momo.js";
+// import { getAccessToken } from "./utils/momo.js";
 import { testConnection } from "./config/database.js";
-import { createCheckoutSession } from "./utils/stripe.js";
 import paymentRoutes from "./routers/paymentRoutes.js";
+import wishlistRoutes from "./routers/wishlistRoutes.js";
+import { initSocket } from "./socket/index.js";
 
 
 const app = express();
+const httpServer = http.createServer(app);
 
 // Enable CORS with specific options
 const corsOptions = {
-  origin: ['http://localhost:5000', 'https://in-time-whip.onrender.com'], // Your frontend URL
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  origin: ['http://localhost:5000', 'https://in-time-whip.onrender.com'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Content-Range', 'X-Total-Count'],
   credentials: true,
   optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 };
@@ -39,7 +44,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = path.dirname(__filename); 
 
 // Serve all static files from the 'public' directory
 // This makes '/uploads/avatars/image.jpg' accessible via 'http://localhost:3001/uploads/avatars/image.jpg'
@@ -51,34 +56,34 @@ app.get("/", (req, res) => {
     res.send("Car Rental API - Welcome!");
 });
 
-app.get("/createApiUser", (req, res) => {
-    const userId = createApiUser();
-    res.json({
-        message: "Api User created successfully",
-    })
-    console.log(userId)
-});
+// app.get("/createApiUser", (req, res) => {
+//     const userId = createApiUser();
+//     res.json({
+//         message: "Api User created successfully",
+//     })
+//     console.log(userId)
+// });
 
-app.get("/generateApiKey", (req, res) => {
-  const apiKey = generateApiKey();
-  res.json({
-      message: "Api Key generated successfully",
-  })
-  console.log(apiKey)
- });
+// app.get("/generateApiKey", (req, res) => {
+//   const apiKey = generateApiKey();
+//   res.json({
+//       message: "Api Key generated successfully",
+//   })
+//   console.log(apiKey)
+//  });
 
-app.get("/getAccessToken", async (req, res) => {
-  try {
-    const accessToken = await getAccessToken();
-    res.json({
-      message: "Access token retrieved successfully",
-      accessToken,
-    });
-  } catch (error) {
-    console.error('Error getting access token:', error);
-    res.status(500).json({ message: 'Failed to get access token' });
-  }
-});
+// app.get("/getAccessToken", async (req, res) => {
+//   try {
+//     const accessToken = await getAccessToken();
+//     res.json({
+//       message: "Access token retrieved successfully",
+//       accessToken,
+//     });
+//   } catch (error) {
+//     console.error('Error getting access token:', error);
+//     res.status(500).json({ message: 'Failed to get access token' });
+//   }
+// });
 
 // Mount API routes
 app.use("/api/auth", authRoute);
@@ -89,6 +94,8 @@ app.use("/api/users", userRoute);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/contact", contactRoutes);
 
 
 // Set default port to 3001 if not specified in environment
@@ -104,17 +111,13 @@ const startServer = async () => {
     await db.sequelize.authenticate();
     console.log('Database connection has been established successfully.');
     
-    // Sync all models - in production, use migrations instead of force: true
-    await db.sequelize.sync({ force: process.env.NODE_ENV === 'development' });
-    console.log('Database synchronized.');
-    // In development, you might want to use { force: true } to reset the database
-    // In production, use { alter: true } or just sync()
-    await db.sequelize.sync({ force: false });
-    console.log('Database synchronized');
-    
     await testConnection();
     // Start the server
-    app.listen(serverPort, () => {
+    initSocket(httpServer, {
+      cors: corsOptions
+    });
+
+    httpServer.listen(serverPort, () => {
       console.log(`Server is running on port ${serverPort}`);
     });
   } catch (error) {

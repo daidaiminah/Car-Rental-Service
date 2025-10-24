@@ -6,7 +6,8 @@ import {
   getRentalById,
   getAvailableCars,
   deleteRental,
-  getOwnerRentals
+  getOwnerRentals,
+  updateRentalStatus
 } from '../controllers/rentalController.js';
 
 const router = express.Router();
@@ -24,7 +25,7 @@ router.get('/my-rentals', getMyRentals);
 router.get('/renter/:userId', getMyRentals);
 
 // Get rentals for cars owned by the current user (using JWT)
-router.get('/owner-rentals', getOwnerRentals);
+router.get('/owner/me', getOwnerRentals);
 
 // Get rentals for cars owned by a specific owner ID
 router.get('/owner/:ownerId', getOwnerRentals);
@@ -34,6 +35,9 @@ router.get('/available-cars', getAvailableCars);
 
 // Get rental by ID
 router.get('/:id', getRentalById);
+
+// Update rental status
+router.patch('/:rentalId/status', updateRentalStatus);
 
 // Cancel a rental
 router.delete('/:id', deleteRental);

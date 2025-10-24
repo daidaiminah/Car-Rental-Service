@@ -3,11 +3,8 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('Customers', {
-      id: {
-        type: Sequelize.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-        allowNull: false,
+      id: { type: Sequelize.UUID,
+        defaultValue: Sequelize.literal('gen_random_uuid()'), primaryKey: true, allowNull: false,
       },
       name: { type: Sequelize.STRING, allowNull: false },
       email: { type: Sequelize.STRING, allowNull: false, unique: true },
@@ -16,7 +13,7 @@ module.exports = {
       licenseNumber: { type: Sequelize.STRING, allowNull: true },
       dateOfBirth: { type: Sequelize.DATEONLY, allowNull: true },
       userId: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.UUID,
         references: {
           model: 'Users',
           key: 'id',

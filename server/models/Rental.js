@@ -3,12 +3,13 @@ export default (sequelize, DataTypes) => {
     "Rental",
     {
       id: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
         autoIncrement: true,
       },
       carId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.UUID,
         allowNull: false,
         references: {
           model: 'Cars',
@@ -16,7 +17,7 @@ export default (sequelize, DataTypes) => {
         }
       },
       userId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.UUID,
         allowNull: false,
         references: {
           model: 'Users',

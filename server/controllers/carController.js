@@ -242,19 +242,30 @@ export const getCarsByOwner = async (req, res) => {
       });
     }
     
-    // Convert ownerId to number if it's a string
-    const numericOwnerId = Number(ownerId);
-    if (isNaN(numericOwnerId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Owner ID must be a number'
-      });
+    // Check if ownerId is a valid UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    
+    let whereClause = {};
+    
+    if (uuidRegex.test(ownerId)) {
+      // If it's a valid UUID, use it directly
+      whereClause = { ownerId };
+    } else {
+      // Otherwise, try to convert to number
+      const numericOwnerId = Number(ownerId);
+      if (isNaN(numericOwnerId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid owner ID format. Must be a valid UUID or number.'
+        });
+      }
+      whereClause = { ownerId: numericOwnerId };
     }
     
-    console.log('Querying cars for owner ID:', numericOwnerId);
+    console.log('Querying cars with where clause:', JSON.stringify(whereClause));
     
     const cars = await Car.findAll({
-      where: { ownerId: numericOwnerId },
+      where: whereClause,
       order: [['createdAt', 'DESC']]
     });
     
@@ -276,6 +287,31 @@ export const getCarsByOwner = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Failed to get cars by owner',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+};
+
+// Get featured cars
+export const getFeaturedCars = async (req, res) => {
+  try {
+    // Get the 6 most recently added available cars
+    const featuredCars = await Car.findAll({
+      where: { isAvailable: true },
+      order: [['createdAt', 'DESC']],
+      limit: 6
+    });
+    
+    return res.status(200).json({
+      success: true,
+      count: featuredCars.length,
+      data: featuredCars
+    });
+  } catch (error) {
+    console.error('Error in getFeaturedCars:', error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to retrieve featured cars",
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
@@ -349,31 +385,6 @@ export const getAvailableCars = async (req, res) => {
       success: false,
       message: "Failed to retrieve available cars",
       error: error.message
-    });
-  }
-};
-
-// Get featured cars
-export const getFeaturedCars = async (req, res) => {
-  try {
-    // Get the 6 most recently added available cars
-    const featuredCars = await Car.findAll({
-      where: { isAvailable: true },
-      order: [['createdAt', 'DESC']],
-      limit: 6
-    });
-    
-    return res.status(200).json({
-      success: true,
-      count: featuredCars.length,
-      data: featuredCars
-    });
-  } catch (error) {
-    console.error('Error in getFeaturedCars:', error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to retrieve featured cars",
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
 };

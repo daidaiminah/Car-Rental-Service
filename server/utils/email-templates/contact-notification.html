@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>New Contact Form Submission</title>
+                <style>body{font-family:Arial,sans-serif;line-height:1.6;max-width:600px;margin:0 auto;padding:20px;background:#f3f4f6;} .panel{background:#fff;padding:20px;border-radius:12px;box-shadow:0 4px 20px rgba(15,23,42,0.08);} .meta{margin-top:16px;font-size:14px;color:#374151;} .meta strong{display:inline-block;width:120px;}</style>
+            </head>
+            <body>
+                <div class="panel">
+                  <h2 style="color:#111827;">New Contact Form Submission</h2>
+                  <p>You received a new message via the website contact form.</p>
+                  <div class="meta">
+                    <p><strong>Name:</strong> {{name}}</p>
+                    <p><strong>Email:</strong> {{email}}</p>
+                    <p><strong>Subject:</strong> {{subject}}</p>
+                  </div>
+                  <p style="margin-top:16px;"><strong>Message:</strong></p>
+                  <p style="white-space:pre-line;border-left:3px solid #6366f1;padding-left:12px;">{{message}}</p>
+                </div>
+            </body>
+            </html>

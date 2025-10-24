@@ -1,4 +1,7 @@
+import db from '../models/index.js';
 import { getUnreadNotifications, markAsRead } from '../utils/notificationService.js';
+
+const Notification = db.Notification;
 
 export const getNotifications = async (req, res) => {
   try {

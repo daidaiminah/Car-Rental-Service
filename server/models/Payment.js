@@ -3,12 +3,13 @@ export default (sequelize, DataTypes) => {
       'Payment',
       {
         id: {
-          type: DataTypes.INTEGER,
+          type: DataTypes.UUID,
+          defaultValue: DataTypes.UUIDV4,
           primaryKey: true,
           autoIncrement: true,
         },
         rentalId: {
-          type: DataTypes.INTEGER,
+          type: DataTypes.UUID,
           allowNull: false,
           references: {
             model: 'Rentals',
@@ -17,7 +18,7 @@ export default (sequelize, DataTypes) => {
           onDelete: 'CASCADE',
         },
         userId: {
-          type: DataTypes.INTEGER,
+          type: DataTypes.UUID,
           allowNull: false,
           references: {
             model: 'Users',

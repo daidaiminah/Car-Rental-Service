@@ -109,6 +109,10 @@ export const createRental = async (req, res) => {
       });
     }
 
+    // Normalize pickup/dropoff locations using whichever field the client provided
+    const resolvedPickupLocation = pickupLocation || pickupAddress || 'Not specified';
+    const resolvedDropoffLocation = dropoffLocation || pickupAddress || 'Same as pickup';
+
     // Calculate number of days and total cost
     const totalDays = calculateDays(startDate, endDate);
     const totalCost = car.rentalPricePerDay * totalDays;
@@ -125,8 +129,8 @@ export const createRental = async (req, res) => {
       paymentStatus: 'pending',
       totalDays,
       dailyRate: car.rentalPricePerDay,
-      pickupLocation: pickupLocation || 'Not specified',
-      dropoffLocation: dropoffLocation || 'Same as pickup',
+      pickupLocation: resolvedPickupLocation,
+      dropoffLocation: resolvedDropoffLocation,
       paymentMethod: req.body.paymentMethod || 'credit_card'
     }, { transaction: t });
 
@@ -191,7 +195,7 @@ export const getMyRentals = async (req, res) => {
         { 
           model: Car, 
           as: "car",
-          attributes: ['id', 'make', 'model', 'year', 'imageUrl', 'type']
+            attributes: ['id', 'make', 'model', 'year', 'imageUrl', 'type', 'seats', 'rentalPricePerDay']
         }
       ],
       order: [['createdAt', 'DESC']]
@@ -298,7 +302,7 @@ export const getRentalById = async (req, res) => {
         { 
           model: Car, 
           as: "car",
-          attributes: ['id', 'make', 'model', 'year', 'imageUrl', 'type']
+            attributes: ['id', 'make', 'model', 'year', 'imageUrl', 'type', 'seats', 'rentalPricePerDay']
         },
         {
           model: User,
@@ -335,6 +339,8 @@ export const getRentalById = async (req, res) => {
 export const getOwnerRentals = async (req, res) => {
   try {
     console.log('=== GET OWNER RENTALS ===');
+    console.log('Request params:', req.params);
+    console.log('Request user:', req.user);
     
     // Get ownerId from URL params or JWT
     const ownerId = req.params.ownerId || (req.user && req.user.id);
@@ -343,38 +349,54 @@ export const getOwnerRentals = async (req, res) => {
     const { status, page = 1, limit = 10 } = req.query;
     const offset = (page - 1) * limit;
     
-    console.log('Owner ID:', ownerId, 'Status filter:', status);
+    console.log('Owner ID:', ownerId, 'Status filter:', status, 'Page:', page, 'Limit:', limit);
     
     if (!ownerId) {
+      console.error('No owner ID found in request');
       return res.status(400).json({
         success: false,
         message: 'Owner ID is required',
-        details: 'No owner ID provided in URL params or JWT token'
+        details: 'No owner ID provided in URL params or JWT token',
+        requestParams: req.params,
+        requestUser: req.user ? 'User exists in request' : 'No user in request'
       });
     }
     
-    // Convert ownerId to number if it's a string
-    const numericOwnerId = Number(ownerId);
-    if (isNaN(numericOwnerId)) {
+    // Use the ownerId directly (it's a UUID string)
+    const ownerIdToUse = ownerId;
+    
+    // Validate UUID format (optional but recommended)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(ownerIdToUse)) {
+      console.error('Invalid owner ID format (expected UUID):', ownerIdToUse);
       return res.status(400).json({
         success: false,
-        message: 'Owner ID must be a number',
-        received: ownerId
+        message: 'Invalid owner ID format',
+        expectedFormat: 'UUID',
+        received: ownerIdToUse
       });
     }
     
     // Find all cars owned by this user
+    console.log('Finding cars for owner ID:', ownerIdToUse);
     const { count: totalCars, rows: ownerCars } = await Car.findAndCountAll({
-      where: { userId: numericOwnerId },
-      attributes: ['id']
+      where: { ownerId: ownerIdToUse },
+      attributes: ['id'],
+      raw: true
+    }).catch(err => {
+      console.error('Error finding cars:', err);
+      throw new Error(`Failed to find cars for owner: ${err.message}`);
     });
     
+    console.log(`Found ${totalCars} cars for owner ${ownerIdToUse}`);
+    
     if (totalCars === 0) {
+      console.log('No cars found for owner, returning empty array');
       return res.status(200).json({
         success: true,
         count: 0,
         totalPages: 0,
-        currentPage: parseInt(page),
+        currentPage: parseInt(page, 10),
         data: []
       });
     }
@@ -393,25 +415,36 @@ export const getOwnerRentals = async (req, res) => {
     }
     
     // Find all rentals for these cars with pagination
+    console.log('Finding rentals for car IDs:', carIds);
+    console.log('Rental where clause:', JSON.stringify(rentalWhere, null, 2));
+    
     const { count: totalRentals, rows: rentals } = await Rental.findAndCountAll({
       where: rentalWhere,
       include: [
         { 
           model: Car, 
           as: "car",
-          attributes: ['id', 'make', 'model', 'year', 'imageUrl', 'type', 'ownerId', 'licensePlate']
+          attributes: ['id', 'make', 'model', 'year', 'imageUrl', 'type', 'seats', 'rentalPricePerDay', 'ownerId'],
+          required: true
         },
         {
           model: User,
           as: 'user',
-          attributes: ['id', 'name', 'email', 'phone', 'profileImage']
+          attributes: ['id', 'name', 'email', 'phone', 'profileImage'],
+          required: false
         }
       ],
       order: [['createdAt', 'DESC']],
-      limit: parseInt(limit),
+      limit: parseInt(limit, 10),
       offset: offset,
-      distinct: true
+      distinct: true,
+      logging: console.log // Log the SQL query
+    }).catch(err => {
+      console.error('Error finding rentals:', err);
+      throw new Error(`Failed to find rentals: ${err.message}`);
     });
+    
+    console.log(`Found ${rentals.length} rentals out of ${totalRentals} total`);
     
     // Calculate total pages
     const totalPages = Math.ceil(totalRentals / limit);
@@ -426,10 +459,22 @@ export const getOwnerRentals = async (req, res) => {
     });
   } catch (error) {
     console.error('Error in getOwnerRentals:', error);
+    console.error('Error stack:', error.stack);
+    
+    // Check for specific error types
+    if (error.name === 'SequelizeDatabaseError') {
+      console.error('Database error details:', {
+        message: error.message,
+        sql: error.sql,
+        parameters: error.parameters
+      });
+    }
+    
     return res.status(500).json({
       success: false,
       message: "Failed to retrieve rentals for your cars",
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+      ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
     });
   }
 };
@@ -596,88 +641,6 @@ export const updateRentalStatus = async (req, res) => {
     });
   }
 };
-
-// Update rental status (confirm/reject/cancel)
-// export const updateRentalStatus = async (req, res) => {
-//   try {
-//     const { rentalId } = req.params;
-//     const { status } = req.body;
-//     const userId = req.user.id;
-
-//     if (!['confirmed', 'rejected', 'cancelled'].includes(status)) {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Invalid status. Must be one of: confirmed, rejected, cancelled'
-//       });
-//     }
-
-//     const rental = await Rental.findOne({
-//       where: { id: rentalId },
-//       include: [
-//         {
-//           model: Car,
-//           as: 'car',
-//           attributes: ['id', 'ownerId']
-//         }
-//       ]
-//     });
-
-//     if (!rental) {
-//       return res.status(404).json({
-//         success: false,
-//         message: 'Rental not found'
-//       });
-//     }
-
-//     // Check if user has permission (must be owner or admin)
-//     if (rental.car.ownerId !== userId && !req.user.isAdmin) {
-//       return res.status(403).json({
-//         success: false,
-//         message: 'Not authorized to update this rental'
-//       });
-//     }
-
-//     // Update rental status
-//     rental.status = status === 'rejected' ? 'cancelled' : status;
-//     await rental.save();
-
-//     // If confirmed, mark car as unavailable during rental period
-//     if (status === 'confirmed') {
-//       // Here you would typically implement actual car availability logic
-//       // For example, you might have a separate table for car availability
-//       console.log(`Car ${rental.carId} marked as booked from ${rental.startDate} to ${rental.endDate}`);
-//     }
-
-//     // Notify the renter about the status update
-//     try {
-//       await sendNotification({
-//         userId: rental.userId,
-//         title: `Rental ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-//         message: `Your rental request has been ${status}`,
-//         type: 'rental_status_update',
-//         data: {
-//           rentalId: rental.id,
-//           status: rental.status
-//         }
-//       });
-//     } catch (error) {
-//       console.error('Error sending notification:', error);
-//     }
-
-//     return res.status(200).json({
-//       success: true,
-//       message: `Rental ${status} successfully`,
-//       data: rental
-//     });
-//   } catch (error) {
-//     console.error(error);
-//     return res.status(500).json({
-//       success: false,
-//       message: 'Error updating rental status',
-//       error: error.message
-//     });
-//   }
-// };
 
 export const deleteRental = async (req, res) => {
   try {
