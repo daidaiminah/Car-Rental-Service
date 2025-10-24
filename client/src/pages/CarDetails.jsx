@@ -1,543 +1,314 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import { 
-  useGetCarByIdQuery,
-  useAddCarMutation,
-  useUpdateCarMutation,
-  useDeleteCarMutation 
-} from '../store/features/cars/carsApiSlice';
-import { useGetRentalsByCarIdQuery } from '../store/features/rentals/rentalsApiSlice';
+import React, { useEffect, useMemo } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { format } from "date-fns";
+import {
+  FiArrowLeft,
+  FiMapPin,
+  FiDroplet,
+  FiUsers,
+  FiTool,
+  FiCheckCircle,
+  FiClock,
+} from "react-icons/fi";
+import { useGetCarByIdQuery } from "../store/features/cars/carsApiSlice";
+import { useGetRentalsByCarIdQuery } from "../store/features/rentals/rentalsApiSlice";
+import { toast } from "react-toastify";
+
+const formatCurrency = (value) => {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return "$0.00";
+  }
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+  }).format(Number(value));
+};
+
+const statusBadgeClasses = (status) => {
+  switch ((status || "").toLowerCase()) {
+    case "completed":
+      return "bg-green-100 text-green-700";
+    case "confirmed":
+    case "in_progress":
+      return "bg-blue-100 text-blue-700";
+    case "cancelled":
+    case "rejected":
+      return "bg-red-100 text-red-600";
+    default:
+      return "bg-gray-100 text-gray-600";
+  }
+};
 
 const CarDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [error, setError] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Use RTK Query hooks to fetch data
-  const { 
+  const {
     data: carResponse,
     isLoading: isLoadingCar,
     isError: isCarError,
-    error: carError
-  } = useGetCarByIdQuery(id, { 
-    // Skip query if we're on the 'new' page
-    skip: id === 'new' 
+    error: carError,
+  } = useGetCarByIdQuery(id, {
+    skip: !id,
+    refetchOnMountOrArgChange: true,
   });
-  
-  // Extract car from the response, handling both direct object and nested data property
-  const car = carResponse?.data || carResponse;
-  
-  // Fetch rentals for this car
+
   const {
-    data: carRentalsResponse,
-    isLoading: isLoadingRentals
+    data: rentalsResponse,
+    isLoading: isLoadingRentals,
   } = useGetRentalsByCarIdQuery(id, {
-    // Skip query if we're on the 'new' page
-    skip: id === 'new'
+    skip: !id,
+    refetchOnMountOrArgChange: true,
   });
-  
-  // Extract rentals from the response, handling both direct array and nested data property
-  const carRentals = Array.isArray(carRentalsResponse) 
-    ? carRentalsResponse 
-    : Array.isArray(carRentalsResponse?.data) 
-      ? carRentalsResponse.data 
-      : [];
-  
-  // RTK Query mutation hooks
-  const [addCar] = useAddCarMutation();
-  const [updateCar] = useUpdateCarMutation();
-  const [deleteCar] = useDeleteCarMutation();
-  
-  // Show error toast if API request fails
-  useEffect(() => {
-    if (isCarError) {
-      console.error('Error fetching car:', carError);
-      setError(carError?.data?.message || 'Failed to load car data');
-    }
-  }, [isCarError, carError]);
-  
-  // Determine loading and error states without early returns
-  const isLoading = id !== 'new' && (isLoadingCar || isLoadingRentals);
-  const hasError = isCarError || (id !== 'new' && !car);
 
+  const car = useMemo(() => {
+    if (!carResponse) return null;
+    if (carResponse.data) return carResponse.data;
+    return carResponse;
+  }, [carResponse]);
 
-  
-  // Form state for new/edit car
-  const [formData, setFormData] = useState({
-    make: '',
-    model: '',
-    year: new Date().getFullYear(),
-    rentalPricePerDay: '',
-    isAvailable: true
-  });
-  
-  // Update form data when car data is loaded
-  useEffect(() => {
-    if (car && id !== 'new') {
-      setFormData({
-        make: car.make || '',
-        model: car.model || '',
-        year: car.year || new Date().getFullYear(),
-        rentalPricePerDay: car.rentalPricePerDay || '',
-        isAvailable: car.isAvailable !== undefined ? car.isAvailable : true,
-        fuelType: car.fuelType || 'Gasoline',
-        transmission: car.transmission || 'Automatic'
-      });
-    }
-  }, [car, id]);
-  
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
+  const rentals = useMemo(() => {
+    const raw = rentalsResponse?.data ?? rentalsResponse ?? [];
+    if (!Array.isArray(raw)) return [];
+    return [...raw].sort((a, b) => {
+      const da = a?.startDate ? new Date(a.startDate).getTime() : 0;
+      const db = b?.startDate ? new Date(b.startDate).getTime() : 0;
+      return db - da;
     });
-  };
-  
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    
-    try {
-      const carData = {
-        ...formData,
-        year: parseInt(formData.year),
-        rentalPricePerDay: parseFloat(formData.rentalPricePerDay)
-      };
-      
-      if (id === 'new') {
-        // Use RTK Query mutation to create car
-        await addCar(carData).unwrap();
-        toast.success('Car created successfully');
-        navigate('/cars');
-      } else {
-        // Use RTK Query mutation to update car
-        await updateCar({ id, ...carData }).unwrap();
-        toast.success('Car updated successfully');
-      }
-    } catch (err) {
-      console.error('Error saving car:', err);
-      toast.error(err.data?.message || 'Failed to save car. Please try again.');
-      setError('Failed to save car. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  }, [rentalsResponse]);
 
-  const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this car?')) {
-      try {
-        // Use RTK Query mutation to delete car
-        await deleteCar(id).unwrap();
-        toast.success('Car deleted successfully');
-        navigate('/cars');
-      } catch (err) {
-        console.error('Failed to delete car:', err);
-        toast.error(err.data?.message || 'Failed to delete car. Please try again.');
-        setError('Failed to delete car. Please try again.');
-      }
-    }
-  };
+  if (isCarError) {
+    const message =
+      carError?.data?.message || carError?.error || "Failed to load car details.";
+    toast.error(message);
+  }
 
-  if (error) {
+  if (!id || isLoadingCar) {
     return (
-      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-        <p>{error}</p>
-        <button 
-          className="mt-2 text-primary hover:underline"
-          onClick={() => window.location.reload()}
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-primary" />
+      </div>
+    );
+  }
+
+  if (isCarError || !car) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-16 text-center">
+        <h2 className="text-2xl font-semibold text-gray-800">Car not found</h2>
+        <p className="mt-2 text-gray-600">
+          We couldn&apos;t find the car you&apos;re looking for. It may have been removed or the
+          link is incorrect.
+        </p>
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="mt-6 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
         >
-          Try Again
+          <FiArrowLeft />
+          Go back
         </button>
       </div>
     );
   }
-  
-  // Create a default car object for new car form
-  const defaultCar = {
-    make: '',
-    model: '',
-    year: new Date().getFullYear(),
-    color: '',
-    licensePlate: '',
-    vin: '',
-    mileage: 0,
-    dailyRate: '',
-    fuelType: 'Gasoline',
-    transmission: 'Automatic',
-    status: 'Available',
-    features: []
-  };
 
-  // Determine loading state
-  const loading = id !== 'new' && (isLoadingCar || isLoadingRentals);
-
-  // Handle loading state
-  if (loading) {
-    return (
-      <div className="container mx-auto py-8 px-4">
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading car details...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Handle error state
-  if (hasError) {
-    return (
-      <div className="container mx-auto py-8 px-4">
-        <div className="bg-red-50 border-l-4 border-red-400 p-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-red-700">
-                {error || 'Failed to load car details. Please try again later.'}
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="mt-6 text-center">
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Main content
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">
-          {id === 'new' ? 'Add New Car' : `${car.year} ${car.make} ${car.model}`}
-        </h1>
-        {id !== 'new' && (
-          <div className="flex space-x-2">
-            <Link to={`/cars/${id}/edit`} className="btn-primary">
-              Edit Car
-            </Link>
-            <button
-              onClick={handleDelete}
-              className="btn bg-red-600 text-white hover:bg-red-700"
-            >
-              Delete Car
-            </button>
-          </div>
-        )}
-      </div>
+    <div className="bg-light-gray min-h-screen py-10">
+      <div className="mx-auto max-w-6xl px-4">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="mb-6 inline-flex items-center gap-2 text-gray-600 hover:text-gray-900"
+        >
+          <FiArrowLeft /> Back
+        </button>
 
-      {id !== 'new' ? (
-        <>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Car Information Card */}
-            <div className="lg:col-span-2">
-              <div className="card">
-                <h2 className="text-xl font-semibold mb-4">Car Information</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-secondary-light text-sm">Make</p>
-                    <p className="font-medium">{car.make}</p>
+        <div className="grid gap-8 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="overflow-hidden rounded-xl bg-white shadow">
+              <div className="relative h-72 w-full bg-gray-100">
+                {car.imageUrl ? (
+                  <img
+                    src={car.imageUrl}
+                    alt={`${car.make} ${car.model}`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-gray-400">
+                    No image available
                   </div>
-                  <div>
-                    <p className="text-secondary-light text-sm">Model</p>
-                    <p className="font-medium">{car.model}</p>
-                  </div>
-                  <div>
-                    <p className="text-secondary-light text-sm">Year</p>
-                    <p className="font-medium">{car.year}</p>
-                  </div>
-                  <div>
-                    <p className="text-secondary-light text-sm">Color</p>
-                    <div className="flex items-center">
-                      <span 
-                        className="w-4 h-4 rounded-full mr-2 border border-gray-300" 
-                        style={{ backgroundColor: car.color ? car.color.toLowerCase() : '#cccccc' }}
-                      ></span>
-                      <p className="font-medium">{car.color || 'N/A'}</p>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-secondary-light text-sm">License Plate</p>
-                    <p className="font-medium">{car.licensePlate}</p>
-                  </div>
-                  <div>
-                    <p className="text-secondary-light text-sm">VIN</p>
-                    <p className="font-medium">{car.vin}</p>
-                  </div>
-                  <div>
-                    <p className="text-secondary-light text-sm">Mileage</p>
-                    <p className="font-medium">{car.mileage} miles</p>
-                  </div>
-                  <div>
-                    <p className="text-secondary-light text-sm">Daily Rate</p>
-                    <p className="font-medium">${car.dailyRate}/day</p>
-                  </div>
-                  <div>
-                    <p className="text-secondary-light text-sm">Fuel Type</p>
-                    <p className="font-medium">{car.fuelType}</p>
-                  </div>
-                  <div>
-                    <p className="text-secondary-light text-sm">Transmission</p>
-                    <p className="font-medium">{car.transmission}</p>
-                  </div>
-                  <div className="md:col-span-2">
-                    <p className="text-secondary-light text-sm">Features</p>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {car.features && car.features.map((feature, index) => (
-                        <span key={index} className="px-2 py-1 bg-gray-100 text-secondary-dark rounded-full text-xs">
-                          {feature}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                )}
+                <span className="absolute left-4 top-4 rounded-full bg-primary px-3 py-1 text-sm font-semibold text-white">
+                  {car.type || "Vehicle"}
+                </span>
               </div>
-            </div>
-
-            {/* Car Status Card */}
-            <div className="lg:col-span-1">
-              <div className="card">
-                <h2 className="text-xl font-semibold mb-4">Car Status</h2>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <span className="text-secondary-light">Status</span>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      car.status === 'Available' 
-                        ? 'bg-green-50 text-green-700 border border-green-200' 
-                        : car.status === 'Rented'
-                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                        : 'bg-yellow-50 text-yellow-700 border border-yellow-200'
-                    }`}>
-                      {car.status}
+              <div className="p-6">
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <h1 className="text-3xl font-bold text-gray-900">
+                      {car.year ? `${car.year} ` : ""}
+                      {car.make} {car.model}
+                    </h1>
+                    <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-gray-500">
+                      {car.location && (
+                        <span className="inline-flex items-center gap-1">
+                          <FiMapPin /> {car.location}
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-1">
+                        <FiUsers /> {car.seats || "N/A"} seats
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <FiDroplet /> {car.fuelType || "N/A"}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <FiTool /> {car.transmission || "N/A"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm uppercase text-gray-500">Daily rate</p>
+                    <p className="text-3xl font-bold text-primary">
+                      {formatCurrency(car.rentalPricePerDay)}
+                    </p>
+                    <span
+                      className={`mt-2 inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${
+                        car.isAvailable ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
+                      }`}
+                    >
+                      {car.isAvailable ? <FiCheckCircle /> : <FiClock />}
+                      {car.isAvailable ? "Available" : "Currently unavailable"}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <span className="text-secondary-light">Total Rentals</span>
-                    <span className="font-bold text-secondary-dark">{carRentals.length}</span>
+                </div>
+
+                {car.description && (
+                  <div className="mt-6">
+                    <h2 className="text-lg font-semibold text-gray-800">Description</h2>
+                    <p className="mt-2 leading-relaxed text-gray-600">{car.description}</p>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <span className="text-secondary-light">Revenue Generated</span>
-                    <span className="font-bold text-secondary-dark">$650</span>
-                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-white p-6 shadow">
+              <h2 className="text-lg font-semibold text-gray-800">Vehicle details</h2>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-sm text-gray-500">Make</p>
+                  <p className="font-medium text-gray-900">{car.make || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Model</p>
+                  <p className="font-medium text-gray-900">{car.model || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Type</p>
+                  <p className="font-medium text-gray-900">{car.type || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Year</p>
+                  <p className="font-medium text-gray-900">{car.year || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Fuel type</p>
+                  <p className="font-medium text-gray-900">{car.fuelType || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Transmission</p>
+                  <p className="font-medium text-gray-900">{car.transmission || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Seats</p>
+                  <p className="font-medium text-gray-900">{car.seats || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Location</p>
+                  <p className="font-medium text-gray-900">{car.location || "Not specified"}</p>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Rental History */}
-          <div className="card mt-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Rental History</h2>
-              <Link to={`/rentals/new?carId=${car.id}`} className="btn-primary">
-                New Rental
-              </Link>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="px-4 py-3 text-left text-sm font-medium text-secondary-light">ID</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-secondary-light">Customer</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-secondary-light">Start Date</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-secondary-light">End Date</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-secondary-light">Amount</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-secondary-light">Status</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-secondary-light">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {carRentals.length > 0 ? (
-                    carRentals.map(rental => (
-                      <tr key={rental.id} className="border-b border-gray-200 hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm">{rental.id}</td>
-                        <td className="px-4 py-3 text-sm font-medium">{rental.customer}</td>
-                        <td className="px-4 py-3 text-sm">{rental.startDate}</td>
-                        <td className="px-4 py-3 text-sm">{rental.endDate}</td>
-                        <td className="px-4 py-3 text-sm">{rental.amount}</td>
-                        <td className="px-4 py-3 text-sm">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            rental.status === 'Active' 
-                              ? 'bg-green-50 text-green-700 border border-green-200' 
-                              : rental.status === 'Upcoming'
-                              ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                              : 'bg-gray-50 text-gray-700 border border-gray-200'
-                          }`}>
-                            {rental.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          <Link to={`/rentals/${rental.id}`} className="text-primary hover:underline">View</Link>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="7" className="px-4 py-3 text-sm text-center">
-                        No rental history found.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </>
-      ) : (
-        <div className="card">
-          <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-secondary-light mb-1">Make</label>
-                <input 
-                  type="text" 
-                  name="make"
-                  value={formData.make}
-                  onChange={handleInputChange}
-                  className="input" 
-                  placeholder="Enter make" 
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-secondary-light mb-1">Model</label>
-                <input 
-                  type="text" 
-                  name="model"
-                  value={formData.model}
-                  onChange={handleInputChange}
-                  className="input" 
-                  placeholder="Enter model" 
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-secondary-light mb-1">Year</label>
-                <input 
-                  type="number" 
-                  name="year"
-                  value={formData.year}
-                  onChange={handleInputChange}
-                  className="input" 
-                  placeholder="Enter year" 
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-secondary-light mb-1">Rental Price Per Day ($)</label>
-                <input 
-                  type="number" 
-                  name="rentalPricePerDay"
-                  value={formData.rentalPricePerDay}
-                  onChange={handleInputChange}
-                  className="input" 
-                  placeholder="Enter rental price per day" 
-                  step="0.01"
-                  required
-                />
-              </div>
-              <div className="flex items-center">
-                <input 
-                  type="checkbox" 
-                  id="isAvailable"
-                  name="isAvailable"
-                  checked={formData.isAvailable}
-                  onChange={(e) => setFormData({...formData, isAvailable: e.target.checked})}
-                  className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-                />
-                <label htmlFor="isAvailable" className="ml-2 block text-sm text-gray-700">
-                  Available for rent
-                </label>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-secondary-light mb-1">Fuel Type</label>
-                <select 
-                  name="fuelType"
-                  value={formData.fuelType}
-                  onChange={handleInputChange}
-                  className="input"
-                  required
-                >
-                  <option value="">Select fuel type</option>
-                  <option value="Gasoline">Gasoline</option>
-                  <option value="Diesel">Diesel</option>
-                  <option value="Electric">Electric</option>
-                  <option value="Hybrid">Hybrid</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-secondary-light mb-1">Transmission</label>
-                <select 
-                  name="transmission"
-                  value={formData.transmission}
-                  onChange={handleInputChange}
-                  className="input"
-                  required
-                >
-                  <option value="">Select transmission</option>
-                  <option value="Automatic">Automatic</option>
-                  <option value="Manual">Manual</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-secondary-light mb-1">Status</label>
-                <select 
-                  name="status"
-                  value={formData.status}
-                  onChange={handleInputChange}
-                  className="input"
-                  required
-                >
-                  <option value="Available">Available</option>
-                  <option value="Maintenance">Maintenance</option>
-                  <option value="Rented">Rented</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end space-x-3">
-              <Link to="/cars" className="btn bg-gray-300 text-secondary hover:bg-gray-400">
-                Cancel
-              </Link>
-              <button 
-                type="submit" 
-                className="btn-primary"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Saving...
-                  </>
-                ) : (
-                  'Save Car'
-                )}
-              </button>
-            </div>
-            
-            {error && (
-              <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                {error}
+            {car.ownerId && (
+              <div className="rounded-xl bg-white p-6 shadow">
+                <h2 className="text-lg font-semibold text-gray-800">Owner information</h2>
+                <p className="mt-2 text-sm text-gray-600">
+                  Owner ID: {car.ownerId}
+                </p>
+                <p className="text-sm text-gray-600">
+                  {car.owner ? `Listed by ${car.owner}` : "Contact support for owner details."}
+                </p>
               </div>
             )}
-          </form>
+          </div>
+
+          <div className="space-y-6">
+            <div className="rounded-xl bg-white p-6 shadow">
+              <h2 className="text-lg font-semibold text-gray-800">Rental history</h2>
+              {isLoadingRentals ? (
+                <div className="mt-6 flex items-center justify-center">
+                  <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-primary" />
+                </div>
+              ) : rentals.length === 0 ? (
+                <p className="mt-4 text-sm text-gray-600">
+                  There are no rentals recorded for this vehicle yet.
+                </p>
+              ) : (
+                <ul className="mt-4 space-y-4">
+                  {rentals.map((rental) => {
+                    const start = rental.startDate
+                      ? format(new Date(rental.startDate), "MMM d, yyyy")
+                      : "Unknown";
+                    const end = rental.endDate
+                      ? format(new Date(rental.endDate), "MMM d, yyyy")
+                      : "Unknown";
+                    const renter = rental.user?.name || rental.customer?.name || "Customer";
+
+                    return (
+                      <li key={rental.id} className="rounded-lg border border-gray-100 p-4">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                          <div>
+                            <p className="font-semibold text-gray-900">{renter}</p>
+                            <p className="text-sm text-gray-500">
+                              {start} - {end}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <span
+                              className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClasses(
+                                rental.status
+                              )}`}
+                            >
+                              {rental.status || 'Pending'}
+                            </span>
+                            <p className="mt-1 text-sm font-medium text-gray-700">
+                              {formatCurrency(rental.totalCost || rental.totalAmount)}
+                            </p>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+
+            <div className="rounded-xl bg-white p-6 shadow">
+              <h2 className="text-lg font-semibold text-gray-800">Need assistance?</h2>
+              <p className="mt-2 text-sm text-gray-600">
+                If you have any questions about this vehicle or need help managing rentals, our support
+                team is here to help.
+              </p>
+              <Link
+                to="/contact"
+                className="mt-4 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+              >
+                Contact support
+              </Link>
+            </div>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

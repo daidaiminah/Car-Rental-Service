@@ -20,11 +20,19 @@ export const authApiSlice = createApi({
   }),
   endpoints: (builder) => ({
     login: builder.mutation({
-      query: (credentials) => ({
-        url: '/auth/login',
-        method: 'POST',
-        body: credentials,
-      }),
+      query: (credentials) => {
+        // Extract role from credentials
+        const { email, password, role } = credentials;
+        return {
+          url: '/auth/login',
+          method: 'POST',
+          body: { 
+            email, 
+            password, 
+            ...(role && { role }) // Only include role if it exists
+          },
+        };
+      },
       transformResponse: (response) => {
         // The backend sends the token inside response.data
         if (response && response.data) {
@@ -36,11 +44,16 @@ export const authApiSlice = createApi({
         return response;
       },
       transformErrorResponse: (response) => {
-        // Transform error response to be more descriptive
+        // Handle role-based errors
+        if (response.status === 403) {
+          return {
+            status: response.status,
+            message: response.data?.message || 'Insufficient permissions for this action'
+          };
+        }
         return {
           status: response.status,
-          data: response.data,
-          message: response.data?.message || 'An error occurred during login',
+          message: response.data?.message || 'Login failed. Please try again.'
         };
       },
     }),

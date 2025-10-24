@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { FiX, FiCalendar, FiMapPin, FiCreditCard, FiClock, FiCheck, FiChevronLeft, FiChevronRight, FiStar, FiMessageSquare } from 'react-icons/fi';
+import { FiX, FiMapPin, FiUsers, FiChevronLeft, FiChevronRight, FiStar } from 'react-icons/fi';
 import { FaCar, FaGasPump, FaCogs } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import BookingFlow from './BookingFlow';
@@ -8,6 +8,18 @@ import { selectCurrentUser } from "../store/features/auth/authSlice";
 import ReviewList from './reviews/ReviewList';
 import ReviewForm from './reviews/ReviewForm';
 import useCarReviews from '../hooks/useCarReviews';
+import { useGetRentalsByRenterIdQuery } from '../store/features/rentals/rentalsApiSlice';
+
+const formatCurrency = (value) => {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return '$0.00';
+  }
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+  }).format(Number(value));
+};
 
 const CarDetailModal = ({ car, onClose, onBook }) => {
   // Car images for the carousel
@@ -19,64 +31,64 @@ const CarDetailModal = ({ car, onClose, onBook }) => {
   ];
   
   // Fetch reviews for this car
-  const { 
-    reviews, 
-    averageRating, 
-    totalReviews, 
-    isLoading: isLoadingReviews, 
+    const {
+    reviews,
+    averageRating,
+    totalReviews,
+    isLoading: isLoadingReviews,
     error: reviewsError,
-    addReview 
+    refreshReviews
   } = useCarReviews(car?.id);
   
-  // Host data from the car owner
-  const host = car?.owner || {
-    name: car?.ownerName || 'Car Owner',
-    profileImage: car?.ownerImage,
-    joinedYear: new Date(car?.ownerCreatedAt).getFullYear() || new Date().getFullYear(),
-    responseTime: '2 hours', // This would come from the owner's profile
-    rating: averageRating,
-    tripsCompleted: car?.tripsCompleted || 0,
-    carsListed: car?.carsListed || 1
-  };
+    // Host data from the car owner
+  const displayAverageRating = Number.isFinite(averageRating) ? averageRating : 0;
   const user = useSelector(selectCurrentUser);
+  const { data: renterRentalsResponse } = useGetRentalsByRenterIdQuery(user?.id, {
+    skip: !user?.id,
+  });
+  const renterRentals = useMemo(() => {
+    const raw = renterRentalsResponse?.data ?? renterRentalsResponse ?? [];
+    return Array.isArray(raw) ? raw : [];
+  }, [renterRentalsResponse]);
+  const hasUserReview = useMemo(() => {
+    if (!user?.id) return false;
+    return reviews.some((review) => review.user?.id === user.id);
+  }, [user?.id, reviews]);
+  const handleReviewSubmitted = () => {
+    refreshReviews();
+  };
   
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showBookingFlow, setShowBookingFlow] = useState(false);
-  const [activeTab, setActiveTab] = useState('details');
   const [completedRentalId, setCompletedRentalId] = useState(null);
 
-  const handleBookNow = () => {
-    setShowBookingFlow(true);
-  };
-  
-  const handleBookingSuccess = (rental) => {
-    toast.success('Booking confirmed! Check your email for details.');
-    setShowBookingFlow(false);
-    // Store the rental ID for review purposes
-    setCompletedRentalId(rental.id);
-  };
-  
-  const handleReviewSubmitted = (newReview) => {
-    addReview(newReview);
-    setActiveTab('reviews');
-  };
-  
   const nextImage = () => {
-    setCurrentImageIndex((prevIndex) => 
-      prevIndex === carImages.length - 1 ? 0 : prevIndex + 1
-    );
+    setCurrentImageIndex((prev) => (prev + 1) % carImages.length);
   };
-  
+
   const prevImage = () => {
-    setCurrentImageIndex((prevIndex) => 
-      prevIndex === 0 ? carImages.length - 1 : prevIndex - 1
+    setCurrentImageIndex((prev) =>
+      prev === 0 ? carImages.length - 1 : prev - 1
     );
   };
-  
+
   const goToImage = (index) => {
     setCurrentImageIndex(index);
   };
 
+  useEffect(() => {
+    if (!user?.id || !car?.id) return;
+    const completedRental = renterRentals.find(
+      (rental) => rental.carId === car.id && rental.status === 'completed'
+    );
+    if (completedRental) {
+      setCompletedRentalId(completedRental.id);
+    }
+  }, [user?.id, car?.id, renterRentals]);
+  const handleBookNow = () => {
+    setShowBookingFlow(true);
+  };
+  
   // Render functions for different sections of the car detail modal
   const renderCarousel = () => {
     return (
@@ -120,84 +132,72 @@ const CarDetailModal = ({ car, onClose, onBook }) => {
   };
   
   const renderCarInfo = () => {
+    const dailyRateDisplay = formatCurrency(car.rentalPricePerDay ?? car.pricePerDay);
     return (
       <div className="mb-8">
-        <div className="flex justify-between items-start mb-4">
+        <div className="mb-4 flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-secondary-dark">{car.year} {car.make} {car.model}</h1>
-            <p className="text-secondary-light">{car.location}</p>
+            <h1 className="text-2xl font-bold text-secondary-dark">
+              {car.year ? `${car.year} ` : ''}{car.make} {car.model}
+            </h1>
+            {car.location && (
+              <p className="mt-1 flex items-center text-secondary-light">
+                <FiMapPin className="mr-2" /> {car.location}
+              </p>
+            )}
           </div>
           <div className="text-right">
-            <p className="text-2xl font-bold text-primary">${car.rentalPricePerDay || car.pricePerDay}<span className="text-sm font-normal text-secondary-light">/day</span></p>
+            <p className="text-sm uppercase text-secondary-light">Daily rate</p>
+            <p className="text-3xl font-bold text-primary">{dailyRateDisplay}</p>
           </div>
         </div>
-        
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
-          <div className="flex items-center">
-            <FaCar className="text-primary mr-2" />
-            <span className="text-secondary">{car.type || 'Sedan'}</span>
+
+        <div className="mb-6 grid gap-4 sm:grid-cols-2">
+          <div className="flex items-center text-secondary">
+            <FaCar className="mr-2 text-primary" /> {car.type || 'N/A'}
           </div>
-          <div className="flex items-center">
-            <FaCogs className="text-primary mr-2" />
-            <span className="text-secondary">{car.transmission || 'Automatic'}</span>
+          <div className="flex items-center text-secondary">
+            <FaCogs className="mr-2 text-primary" /> {car.transmission || 'N/A'}
           </div>
-          <div className="flex items-center">
-            <FaGasPump className="text-primary mr-2" />
-            <span className="text-secondary">{car.fuelType || 'Gasoline'}</span>
+          <div className="flex items-center text-secondary">
+            <FaGasPump className="mr-2 text-primary" /> {car.fuelType || 'N/A'}
+          </div>
+          <div className="flex items-center text-secondary">
+            <FiUsers className="mr-2 text-primary" /> {car.seats || 'N/A'} seats
           </div>
         </div>
-        
-        <div className="bg-light-gray p-4 rounded-lg mb-6 border-l-4 border-primary">
-          <h3 className="font-medium mb-2 text-secondary-dark">About this car</h3>
-          <p className="text-secondary">{car.description || 'This car is in excellent condition, well-maintained and perfect for your next trip around Monrovia or anywhere in Liberia.'}</p>
-        </div>
-      </div>
-    );
-  };
-  
-  const renderFeatures = () => {
-    const features = [
-      'Air Conditioning',
-      'Bluetooth',
-      'Backup Camera',
-      'USB Charger',
-      'GPS Navigation',
-      'Child Seat Compatible'
-    ];
-    
-    return (
-      <div className="mb-8">
-        <h3 className="text-xl font-bold mb-4 text-secondary-dark">Features & Amenities</h3>
-        <div className="grid grid-cols-2 gap-3">
-          {features.map((feature, index) => (
-            <div key={index} className="flex items-center p-2 rounded-md hover:bg-light-gray transition-colors duration-200">
-              <div className="w-6 h-6 rounded-full bg-primary bg-opacity-10 flex items-center justify-center mr-3">
-                <FiCheck className="text-primary" />
-              </div>
-              <span className="text-secondary">{feature}</span>
-            </div>
-          ))}
-        </div>
+
+        {car.description && (
+          <div className="rounded-lg border-l-4 border-primary bg-light-gray p-4">
+            <h3 className="mb-2 font-medium text-secondary-dark">About this car</h3>
+            <p className="text-secondary">{car.description}</p>
+          </div>
+        )}
       </div>
     );
   };
   
   const renderHostInfo = () => {
+    if (!car.owner && !car.ownerId) {
+      return null;
+    }
+
     return (
-      <div className="mb-8 bg-gray-50 p-4 rounded-lg">
-        <h3 className="text-xl font-bold mb-4">Meet Your Host</h3>
-        <div className="flex items-center mb-4">
-          <div className="w-16 h-16 rounded-full bg-gray-300 mr-4"></div>
-          <div>
-            <h4 className="font-medium">{user?.name || 'Owner'}</h4>
-            <p className="text-gray-600">Joined {host.joinedYear}</p>
-            <div className="flex items-center">
-              <FiStar className="text-yellow-500 mr-1" />
-              <span>{host.rating} · {host.tripsCompleted} trips</span>
-            </div>
-          </div>
-        </div>
-        <p className="text-gray-700">Response time: {host.responseTime}</p>
+      <div className="mb-8 rounded-lg bg-gray-50 p-4">
+        <h3 className="text-xl font-bold mb-3">Listing owner</h3>
+        <p className="text-gray-800">{car.owner || 'Vehicle owner'}</p>
+        {car.ownerId && (
+          <p className="mt-1 text-sm text-gray-500">Owner ID: {car.ownerId}</p>
+        )}
+        {totalReviews > 0 && (
+          <p className="mt-3 text-sm text-gray-600">
+            Rated {displayAverageRating.toFixed(1)} / 5 by renters ({totalReviews}{' '}
+            review{totalReviews === 1 ? '' : 's'})
+          </p>
+        )}
+        <p className="mt-4 text-sm text-gray-600">
+          Contact support if you need to reach the owner directly or have questions about this listing.
+        </p>
       </div>
     );
   };
@@ -205,50 +205,67 @@ const CarDetailModal = ({ car, onClose, onBook }) => {
   const renderReviews = () => {
     return (
       <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <h3 className="text-xl font-bold">Reviews</h3>
-          <div className="flex items-center">
-            <FiStar className="text-yellow-500 mr-1" />
-            <span className="font-medium">{host.rating}</span>
-            <span className="mx-1">·</span>
-            <span>{reviews.length} reviews</span>
+          <div className="flex items-center text-sm text-gray-500">
+            <FiStar className="mr-1 text-yellow-500" />
+            <span>{displayAverageRating.toFixed(1)}</span>
+            <span className="mx-2">|</span>
+            <span>{totalReviews} review{totalReviews === 1 ? '' : 's'}</span>
           </div>
         </div>
-        
-        {reviews.map((review) => (
-          <div key={review.id} className="mb-4 pb-4 border-b border-gray-200 last:border-0">
-            <div className="flex items-center mb-2">
-              <div className="w-10 h-10 rounded-full bg-gray-300 mr-3"></div>
-              <div>
-                <h4 className="font-medium">{review.user}</h4>
-                <p className="text-sm text-gray-500">{review.date}</p>
-              </div>
-            </div>
-            <div className="flex mb-2">
-              {[...Array(5)].map((_, i) => (
-                <FiStar 
-                  key={i} 
-                  className={i < review.rating ? "text-yellow-500" : "text-gray-300"} 
-                />
-              ))}
-            </div>
-            <p className="text-gray-700">{review.comment}</p>
-          </div>
-        ))}
+        {isLoadingReviews ? (
+          <p className="text-sm text-gray-500">Loading reviews...</p>
+        ) : reviewsError ? (
+          <p className="text-sm text-red-500">Failed to load reviews.</p>
+        ) : (
+          <ReviewList
+            reviews={reviews}
+            averageRating={displayAverageRating}
+            totalReviews={totalReviews}
+          />
+        )}
+        {user ? (
+          hasUserReview ? (
+            <p className="mt-4 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700">
+              You have already submitted a review for this car. Thank you!
+            </p>
+          ) : completedRentalId ? (
+            <ReviewForm
+              carId={car.id}
+              rentalId={completedRentalId}
+              onReviewSubmitted={handleReviewSubmitted}
+            />
+          ) : (
+            <p className="mt-4 rounded-md bg-blue-50 px-4 py-3 text-sm text-blue-700">
+              Complete a rental for this car to leave a review.
+            </p>
+          )
+        ) : (
+          <p className="mt-4 text-sm text-gray-500">
+            Sign in to share your experience with this car.
+          </p>
+        )}
       </div>
     );
   };
   
   const renderBookingSection = () => {
+    const dailyRate = Number(car.rentalPricePerDay) || 0;
+    const threeDayTotal = dailyRate * 3;
+    const serviceFee = Math.round(dailyRate * 0.1 * 3);
+    const estimatedTotal = Math.round(threeDayTotal + serviceFee);
+
     return (
       <div className="sticky top-4 bg-light p-6 rounded-lg shadow-lg border border-light-dark">
         <div className="mb-4">
-          <p className="text-2xl font-bold mb-1 text-primary">${car.rentalPricePerDay}<span className="text-sm font-normal text-secondary-light">/day</span></p>
+          <p className="text-2xl font-bold mb-1 text-primary">            <span className="text-sm font-normal text-secondary-light">/day</span>
+          </p>
           <div className="flex items-center">
             <FiStar className="text-primary mr-1" />
-            <span className="text-secondary">{host.rating}</span>
-            <span className="mx-1 text-secondary-light">·</span>
-            <span className="text-secondary-light">{reviews.length} reviews</span>
+            <span className="text-secondary">{displayAverageRating.toFixed(1)}</span>
+            <span className="mx-1 text-secondary-light">|</span>
+            <span className="text-secondary-light">{totalReviews} reviews</span>
           </div>
         </div>
         
@@ -265,45 +282,20 @@ const CarDetailModal = ({ car, onClose, onBook }) => {
         
         <div className="mt-6 pt-6 border-t border-light-dark">
           <div className="flex justify-between mb-2 text-secondary">
-            <span>${car.rentalPricePerDay} x 3 days</span>
-            <span>${car.rentalPricePerDay * 3}</span>
+            <span>${dailyRate.toFixed(2)} × 3 days</span>
+            <span>${threeDayTotal.toFixed(2)}</span>
           </div>
           <div className="flex justify-between mb-2 text-secondary">
             <span>Service fee</span>
-            <span>${Math.round(car.rentalPricePerDay * 0.1 * 3)}</span>
+            <span>${serviceFee.toFixed(2)}</span>
           </div>
           <div className="flex justify-between font-bold pt-4 border-t border-light-dark mt-4 text-secondary-dark">
             <span>Total</span>
-            <span>${Math.round(car.rentalPricePerDay * 3 + car.rentalPricePerDay * 0.1 * 3)}</span>
+            <span>${estimatedTotal.toFixed(2)}</span>
           </div>
         </div>
       </div>
     );
-  };
-
-  const validateForm = () => {
-    if (!bookingData.pickupAddress) {
-      toast.error('Please enter a pickup address');
-      return false;
-    }
-    if (!bookingData.startDate) {
-      toast.error('Please select a start date');
-      return false;
-    }
-    if (!bookingData.endDate) {
-      toast.error('Please select an end date');
-      return false;
-    }
-    
-    const start = new Date(bookingData.startDate);
-    const end = new Date(bookingData.endDate);
-    
-    if (start >= end) {
-      toast.error('End date must be after start date');
-      return false;
-    }
-    
-    return true;
   };
 
   const handleBookingComplete = async (bookingDetails) => {
@@ -314,31 +306,6 @@ const CarDetailModal = ({ car, onClose, onBook }) => {
     } catch (error) {
       console.error('Booking error:', error);
       toast.error(error.message || 'Failed to complete booking');
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-    
-    setIsSubmitting(true);
-    
-    try {
-      // Add total days and price to booking data
-      const bookingDetails = {
-        ...bookingData,
-        carId: car.id,
-        totalDays: calculateTotalDays(),
-        totalAmount: calculateTotalPrice()
-      };
-      
-      await handleBookingComplete(bookingDetails);
-    } catch (error) {
-      console.error('Booking error:', error);
-      toast.error(error.message || 'Failed to complete booking');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -369,7 +336,6 @@ const CarDetailModal = ({ car, onClose, onBook }) => {
                 <div className="lg:col-span-2">
                   {renderCarousel()}
                   {renderCarInfo()}
-                  {renderFeatures()}
                   {renderHostInfo()}
                   {renderReviews()}
                 </div>
@@ -388,3 +354,4 @@ const CarDetailModal = ({ car, onClose, onBook }) => {
 };
 
 export default CarDetailModal;
+

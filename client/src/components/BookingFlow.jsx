@@ -5,7 +5,6 @@ import { toast } from 'react-toastify';
 import { useCreateRentalMutation } from '../store/features/rentals/rentalsApiSlice';
 import { useCreateCheckoutSessionMutation } from '../store/features/payment/paymentApiSlice';
 import { loadStripe } from '@stripe/stripe-js';
-import { Elements } from '@stripe/react-stripe-js';
 import { useAuth } from '../store/authContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -194,6 +193,9 @@ const BookingFlow = ({ car, onClose, onComplete, userId }) => {
       }).unwrap();
 
       // Redirect to payment page
+      // Store the rental ID in session storage for the success page
+      sessionStorage.setItem('pendingRentalId', rental.data.id);
+      // Use window.location for external redirect to Stripe
       window.location.href = url;
     } catch (error) {
       console.error('Payment error:', error);

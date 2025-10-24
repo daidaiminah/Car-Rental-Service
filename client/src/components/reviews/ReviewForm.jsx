@@ -1,56 +1,43 @@
 import React, { useState } from 'react';
 import { FaStar } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import { useCreateReviewMutation } from '../../store/features/reviews/reviewsApiSlice';
 
 const ReviewForm = ({ carId, rentalId, onReviewSubmitted }) => {
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [comment, setComment] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createReview, { isLoading }] = useCreateReviewMutation();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!rentalId) {
+      toast.error('You can only review cars you have completed a rental for.');
+      return;
+    }
+
     if (rating === 0) {
       toast.error('Please select a rating');
       return;
     }
 
-    setIsSubmitting(true);
-
     try {
-      const response = await fetch('/api/reviews', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({
-          rating,
-          comment,
-          carId,
-          rentalId
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to submit review');
-      }
+      const review = await createReview({
+        rating,
+        comment,
+        carId,
+        rentalId,
+      }).unwrap();
 
       toast.success('Review submitted successfully!');
       setRating(0);
       setComment('');
-      
-      if (onReviewSubmitted) {
-        onReviewSubmitted(data.data);
-      }
+
+      onReviewSubmitted?.(review?.data ?? review);
     } catch (error) {
       console.error('Error submitting review:', error);
-      toast.error(error.message || 'Failed to submit review');
-    } finally {
-      setIsSubmitting(false);
+      toast.error(error?.data?.message || 'Failed to submit review');
     }
   };
 
@@ -105,14 +92,14 @@ const ReviewForm = ({ carId, rentalId, onReviewSubmitted }) => {
         <div>
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isLoading || !rentalId}
             className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
-              isSubmitting
+              isLoading || !rentalId
                 ? 'bg-blue-400 cursor-not-allowed'
                 : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
             }`}
           >
-            {isSubmitting ? 'Submitting...' : 'Submit Review'}
+            {isLoading ? 'Submitting...' : 'Submit Review'}
           </button>
         </div>
       </form>

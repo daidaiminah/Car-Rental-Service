@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { FiMapPin, FiCreditCard, FiDollarSign, FiSmartphone, FiCalendar, FiClock, FiSearch, FiStar, FiChevronRight, FiShield } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
+import { useMemo, useCallback } from 'react';
+
 
 // Components
 import Title from '../components/Title';

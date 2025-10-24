@@ -134,18 +134,55 @@ const carsApi = createApi({
     
     // Get cars by owner ID
     getCarsByOwnerId: builder.query({
-      query: (ownerId) => `/cars/owner/${ownerId}`,
-      transformResponse: (response) => {
-        console.log('getCarsByOwnerId response:', response);
-        // Ensure we always return an array, even if the response is undefined or null
-        if (!response) return [];
-        // If the response has a data property (common pattern), use that
-        return Array.isArray(response) ? response : (response.data || []);
+      query: (ownerId) => {
+        if (!ownerId) {
+          console.error('No ownerId provided to getCarsByOwnerId');
+          return 'cars/owner/invalid';
+        }
+        console.log('Fetching cars for owner ID:', ownerId);
+        return `/cars/owner/${ownerId}`;
       },
-      providesTags: (result = []) => {
-        console.log('getCarsByOwnerId providesTags result:', result);
-        // Ensure result is an array before mapping
+      transformResponse: (response, meta, arg) => {
+        console.log('getCarsByOwnerId response for owner', arg, ':', response);
+        
+        // Handle error responses
+        if (response?.success === false) {
+          console.error('Error in getCarsByOwnerId response:', response);
+          return [];
+        }
+        
+        // If response is an array, return it directly
+        if (Array.isArray(response)) {
+          console.log('Returning array of', response.length, 'cars');
+          return response;
+        }
+        
+        // If response has a data property that's an array, return that
+        if (response?.data && Array.isArray(response.data)) {
+          console.log('Returning data array of', response.data.length, 'cars');
+          return response.data;
+        }
+        
+        // If we have a single car object, return it in an array
+        if (response && typeof response === 'object' && response.id) {
+          console.log('Returning single car in array');
+          return [response];
+        }
+        
+        console.log('No valid cars data found in response, returning empty array');
+        return [];
+      },
+      transformErrorResponse: (response, meta, arg) => {
+        console.error('Error in getCarsByOwnerId for owner', arg, ':', response);
+        return response;
+      },
+      providesTags: (result = [], error, ownerId) => {
+        console.log('getCarsByOwnerId providesTags for owner', ownerId, 'result:', result);
+        
+        // Ensure result is an array
         const resultArray = Array.isArray(result) ? result : [];
+        
+        // Return tags for each car plus a list tag
         return [
           ...resultArray.map(({ id }) => ({ type: 'Cars', id })),
           { type: 'Cars', id: 'OWNER_LIST' },

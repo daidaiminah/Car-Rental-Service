@@ -21,6 +21,9 @@ import { authApiSlice } from './features/auth/authApiSlice';
 import { rentalsApiSlice } from './features/rentals/rentalsApiSlice';
 import { usersApiSlice } from './features/users/usersApiSlice';
 import { paymentApiSlice } from './features/payment/paymentApiSlice';
+import { wishlistApiSlice } from './features/wishlist/wishlistApiSlice';
+import { notificationsApiSlice } from './features/notifications/notificationsApiSlice';
+import { reviewsApiSlice } from './features/reviews/reviewsApiSlice';
 
 
 // Import feature reducers
@@ -121,7 +124,7 @@ const persistConfig = {
   storage, // Storage engine (localStorage by default)
   version: 1, // Version number for the persisted state (useful for migrations)
   // Define which reducers to persist and their configuration
-  blacklist: [apiSlice.reducerPath, carsApi.reducerPath, rentalsApiSlice.reducerPath, paymentApiSlice.reducerPath], // Don't persist API caches
+  blacklist: [apiSlice.reducerPath, carsApi.reducerPath, rentalsApiSlice.reducerPath, paymentApiSlice.reducerPath, wishlistApiSlice.reducerPath, notificationsApiSlice.reducerPath, reviewsApiSlice.reducerPath], // Don't persist API caches
   // Whitelist would be used to specify which reducers to persist, but we're using blacklist here
 };
 
@@ -137,6 +140,9 @@ const rootReducer = combineReducers({
   [rentalsApiSlice.reducerPath]: rentalsApiSlice.reducer,
   [usersApiSlice.reducerPath]: usersApiSlice.reducer,
   [paymentApiSlice.reducerPath]: paymentApiSlice.reducer,
+  [wishlistApiSlice.reducerPath]: wishlistApiSlice.reducer,
+  [notificationsApiSlice.reducerPath]: notificationsApiSlice.reducer,
+  [reviewsApiSlice.reducerPath]: reviewsApiSlice.reducer,
   
   // Feature reducers (persisted)
   auth: authReducer,
@@ -162,7 +168,10 @@ const store = configureStore({
     .concat(authApiSlice.middleware)
     .concat(rentalsApiSlice.middleware)
     .concat(usersApiSlice.middleware)
-    .concat(paymentApiSlice.middleware),
+    .concat(paymentApiSlice.middleware)
+    .concat(wishlistApiSlice.middleware)
+    .concat(notificationsApiSlice.middleware)
+    .concat(reviewsApiSlice.middleware),
   devTools: process.env.NODE_ENV !== 'production',
 });
 
@@ -195,4 +204,3 @@ export const {
   useDeleteCarMutation,
   useGetAvailableCarsQuery,
 } = enhancedApi;
-

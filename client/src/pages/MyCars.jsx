@@ -11,19 +11,37 @@ const MyCars = () => {
   
   // Use RTK Query hook to fetch cars by owner ID
   const { 
-    data: cars = [], 
+    data: carsResponse = {}, 
     isLoading, 
     isError, 
     error 
   } = useGetCarsByOwnerIdQuery(user?.id, {
     skip: !user?.id,
+    refetchOnMountOrArgChange: true
   });
   
+  // Process cars data to ensure it's always an array
+  const cars = React.useMemo(() => {
+    if (!user?.id) return [];
+    
+    if (Array.isArray(carsResponse)) {
+      return carsResponse;
+    }
+    
+    if (carsResponse.data && Array.isArray(carsResponse.data)) {
+      return carsResponse.data;
+    }
+    
+    return [];
+  }, [user?.id, carsResponse]);
+  
   // Show error in console if API request fails
-  if (isError) {
-    console.error('Error fetching cars:', error);
-    toast.error('Failed to load your cars. Please try again.');
-  }
+  React.useEffect(() => {
+    if (isError) {
+      console.error('Error fetching cars:', error);
+      toast.error('Failed to load your cars. Please try again.');
+    }
+  }, [isError, error]);
 
   // Use RTK Query mutation hook for deleting cars
   const [deleteCar, { isLoading: isDeleting }] = useDeleteCarMutation();
@@ -111,7 +129,7 @@ const MyCars = () => {
                 />
                 <div className="absolute top-0 right-0 p-2 flex gap-2">
                   <Link 
-                    to={`/edit-car/${car.id}`}
+                    to={`/owner/cars/${car.id}/edit`}
                     className="bg-white p-2 rounded-full shadow-md hover:bg-gray-100 transition"
                   >
                     <FaEdit className="text-secondary" />
@@ -136,7 +154,7 @@ const MyCars = () => {
                 <p className="text-secondary text-sm">{car.year} • {car.transmission} • {car.fuelType}</p>
                 <div className="mt-2 flex justify-between items-center">
                   <span className="text-primary font-bold">${car.rentalPricePerDay}/day</span>
-                  <Link to={`/car-details/${car.id}`} className="text-primary hover:underline text-sm">
+                  <Link to={`/owner/cars/${car.id}`} className="text-primary hover:underline text-sm">
                     View Details
                   </Link>
                 </div>
@@ -150,3 +168,4 @@ const MyCars = () => {
 };
 
 export default MyCars;
+

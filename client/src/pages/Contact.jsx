@@ -20,17 +20,44 @@ const Contact = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // In a real app, you would send this data to your backend
-    console.log('Form submitted:', formData);
-    toast.success('Your message has been sent successfully!');
-    setFormData({
-      name: '',
-      email: '',
-      subject: '',
-      message: ''
-    });
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/contact`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        }
+      );
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(payload.message || 'Failed to send message.');
+      }
+
+      toast.success('Your message has been sent successfully!');
+      setFormData({
+        name: '',
+        email: '',
+        subject: '',
+        message: '',
+      });
+    } catch (error) {
+      console.error('Contact form submission failed:', error);
+      toast.error(error.message || 'Unable to send message. Please try again later.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const contactInfo = [
@@ -223,9 +250,12 @@ const Contact = () => {
               >
                 <button
                   type="submit"
-                  className="w-full bg-primary hover:bg-primary/90 text-white py-3 px-6 rounded-lg transition-all duration-200 font-medium text-lg"
+                  disabled={isSubmitting}
+                  className={`w-full bg-primary text-white py-3 px-6 rounded-lg transition-all duration-200 font-medium text-lg ${
+                    isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:bg-primary/90'
+                  }`}
                 >
-                  Send Message
+                  {isSubmitting ? 'Sending...' : 'Send Message'}
                 </button>
               </motion.div>
             </form>

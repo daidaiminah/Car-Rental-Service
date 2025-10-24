@@ -14,6 +14,11 @@ export const paymentApiSlice = createApi({
   }),
   tagTypes: ['Payment'],
   endpoints: (builder) => ({
+    getPaymentSummary: builder.query({
+      query: () => '/payments/my-summary',
+      providesTags: ['Payment'],
+      transformResponse: (response) => response?.data ?? { transactions: [], paymentMethods: [] },
+    }),
     createPaymentIntent: builder.mutation({
       query: (data) => ({
         url: '/payments/create-payment-intent',
@@ -34,6 +39,7 @@ export const paymentApiSlice = createApi({
 });
 
 export const {
+  useGetPaymentSummaryQuery,
   useCreatePaymentIntentMutation,
   useCreateCheckoutSessionMutation,
 } = paymentApiSlice;

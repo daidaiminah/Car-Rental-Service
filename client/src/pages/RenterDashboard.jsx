@@ -1,460 +1,323 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import Title from '../components/Title';
-import { useSelector } from "react-redux";
-import { FiSearch, FiArrowUpRight, FiClock, FiCalendar, FiFilter } from "react-icons/fi";
-import { FaCar } from "react-icons/fa";
-import CarCard from "../components/CarCard";
-import CarDetailModal from "../components/CarDetailModal";
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import { selectCurrentUser } from "../store/features/auth/authSlice";
-import { 
-  useGetCarsQuery
-} from "../store/features/cars/carsApiSlice";
-import { 
-  useGetRentalsByRenterIdQuery,
-  useCreateRentalMutation 
-} from "../store/features/rentals/rentalsApiSlice";
+import React, { useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
+import { Link } from 'react-router-dom';
+import { format } from 'date-fns';
+import {
+  FiCalendar,
+  FiClock,
+  FiDollarSign,
+  FiHeart,
+} from 'react-icons/fi';
+import { selectCurrentUser } from '../store/features/auth/authSlice';
+import { useGetCarsQuery } from '../store/features/cars/carsApiSlice';
+import { useGetRentalsByRenterIdQuery, useCreateRentalMutation } from '../store/features/rentals/rentalsApiSlice';
+import { useGetWishlistQuery } from '../store/features/wishlist/wishlistApiSlice';
+import CarCard from '../components/CarCard';
+import CarDetailModal from '../components/CarDetailModal';
+import NotificationBell from '../components/NotificationBell.jsx';
 
-// StatCard component for displaying statistics with icons and trends
-const StatCard = ({ title, value, icon: Icon, color, loading = false }) => {
-  const colorMap = {
-    green: { bg: 'bg-green-100', text: 'text-green-600' },
-    blue: { bg: 'bg-blue-100', text: 'text-blue-600' },
-    orange: { bg: 'bg-orange-100', text: 'text-orange-600' },
+const StatCard = ({ title, value, subtitle, icon: Icon, accent = 'blue' }) => {
+  const accentMap = {
+    blue: 'bg-blue-100 text-blue-600',
+    green: 'bg-green-100 text-green-600',
+    orange: 'bg-orange-100 text-orange-600',
+    pink: 'bg-pink-100 text-pink-600',
   };
 
-  const colorClasses = colorMap[color] || colorMap.blue;
-
   return (
-    <article 
-      className="bg-white rounded-lg shadow p-6 flex items-center justify-between"
-      aria-labelledby={`stat-${title.toLowerCase().replace(/\s+/g, '-')}`}
-    >
+    <article className="flex items-center justify-between rounded-lg bg-white p-5 shadow-sm">
       <div>
-        <h2 id={`stat-${title.toLowerCase().replace(/\s+/g, '-')}`} className="sr-only">{title}</h2>
-        <p className="text-gray-700 text-sm font-medium" aria-hidden="true">{title}</p>
-        <div className="text-2xl font-bold mt-1" aria-live="polite">
-          {loading ? (
-            <span className="sr-only">Loading {title.toLowerCase()}</span>
-          ) : (
-            <span>{value}</span>
-          )}
-        </div>
+        <p className="text-sm font-medium text-gray-500">{title}</p>
+        <p className="mt-1 text-2xl font-bold text-gray-900">{value}</p>
+        {subtitle && (
+          <p className="mt-1 text-xs text-gray-400">{subtitle}</p>
+        )}
       </div>
-      <div className={`p-3 rounded-full ${colorClasses.bg}`} aria-hidden="true">
-        <Icon className={`h-6 w-6 ${colorClasses.text}`} />
+      <div
+        className={`flex h-12 w-12 items-center justify-center rounded-full ${accentMap[accent]}`}
+      >
+        <Icon className="h-5 w-5" />
       </div>
     </article>
   );
 };
 
+const safeNumber = (input) => {
+  if (input === null || input === undefined) return 0;
+  const numeric =
+    typeof input === 'number'
+      ? input
+      : parseFloat(String(input).replace(/[^0-9.-]+/g, ''));
+  return Number.isFinite(numeric) ? numeric : 0;
+};
+
 const RenterDashboard = () => {
   const user = useSelector(selectCurrentUser);
   const [selectedCar, setSelectedCar] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [filters, setFilters] = useState({
-    type: '',
-    minPrice: '',
-    maxPrice: '',
-    search: '',
-    status: 'available'
-  });
-  const [activeFilters, setActiveFilters] = useState({
-    status: 'available'
-  });
 
-  // RTK Query hooks
-  const { 
-    data: carsResponse = {},
-    isLoading: carsLoading,
-    isError: carsError,
-    error: carsErrorData
-  } = useGetCarsQuery(activeFilters);
-  
-  // Extract cars from the response, handling both direct array and nested data property
-  const cars = Array.isArray(carsResponse) 
-    ? carsResponse 
-    : Array.isArray(carsResponse?.data) 
-      ? carsResponse.data 
-      : [];
-
-  const { 
-    data: rentalsResponse = {},
+  const {
+    data: rentalsResponse,
     isLoading: rentalsLoading,
-    isError: rentalsError,
-    error: rentalsErrorData
+    refetch: refetchRentals,
   } = useGetRentalsByRenterIdQuery(user?.id, {
-    skip: !user?.id
+    skip: !user?.id,
   });
-  
-  // Extract rentals from the response, handling both direct array and nested data property
-  const rentals = Array.isArray(rentalsResponse) 
-    ? rentalsResponse 
-    : Array.isArray(rentalsResponse?.data) 
-      ? rentalsResponse.data 
-      : [];
+
+  const {
+    data: wishlist = [],
+    isLoading: wishlistLoading,
+  } = useGetWishlistQuery(undefined, {
+    skip: !user?.id,
+  });
+
+  const {
+    data: carsResponse,
+    isLoading: carsLoading,
+  } = useGetCarsQuery({ status: 'available' });
+
+  const rentals = useMemo(() => {
+    const data = rentalsResponse?.data ?? rentalsResponse ?? [];
+    return Array.isArray(data) ? data : [];
+  }, [rentalsResponse]);
 
   const [createRental, { isLoading: isCreatingRental }] = useCreateRentalMutation();
+  const recommendedCars = useMemo(() => {
+    const raw = carsResponse?.data ?? carsResponse ?? [];
+    return Array.isArray(raw) ? raw.slice(0, 6) : [];
+  }, [carsResponse]);
 
-  // Show errors in console
-  if (carsError) {
-    console.error('Error fetching cars:', carsErrorData);
-    toast.error('Failed to load cars data');
-  }
-  
-  if (rentalsError) {
-    console.error('Error fetching rentals:', rentalsErrorData);
-    toast.error('Failed to load rental history');
-  }
+  const today = useMemo(() => new Date(), []);
 
-  // Calculate stats
-  const activeRentals = rentals.filter(rental => rental.status === 'active').length;
-  const pastRentals = rentals.filter(rental => rental.status === 'completed').length;
-  const savedCars = 0; // Placeholder for now
 
-  // Determine if any data is still loading
-  const loading = carsLoading || rentalsLoading;
-
-  const handleBookCar = async (bookingData) => {
+  const handleBookCar = async (bookingDetails) => {
     try {
-      // Add user ID to booking data
-      const rentalData = {
-        ...bookingData,
-        userId: user.id,
-        status: 'active',
-        paymentDate: new Date().toISOString()
-      };
-      
-      // Create rental using RTK Query mutation
-      await createRental(rentalData).unwrap();
-      
-      return true;
+      const rental = await createRental(bookingDetails).unwrap();
+      await refetchRentals();
+      return rental;
     } catch (error) {
-      console.error('Error booking car:', error);
-      throw new Error('Failed to book car. Please try again.');
+      console.error('Error creating rental:', error);
+      throw error;
     }
   };
 
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  const stats = useMemo(() => {
+    const upcomingTrips = rentals.filter((rental) => {
+      if (!rental.startDate) return false;
+      const start = new Date(rental.startDate);
+      return (
+        start >= today &&
+        ['pending', 'confirmed', 'in_progress'].includes(rental.status)
+      );
+    }).length;
 
-  const applyFilters = () => {
-    // Update active filters to trigger RTK Query refetch
-    setActiveFilters({
-      ...filters,
-      // Ensure we always include the status filter
-      status: filters.status || 'available'
-    });
-  };
+    const totalSpent = rentals
+      .filter((rental) =>
+        ['completed', 'confirmed'].includes(rental.status),
+      )
+      .reduce(
+        (sum, rental) =>
+          sum + safeNumber(rental.totalCost ?? rental.totalAmount ?? rental.payment?.amount),
+        0,
+      );
 
-  const openCarDetails = (car) => {
-    setSelectedCar(car);
-    setShowModal(true);
-  };
+    return {
+      totalBookings: rentals.length,
+      upcomingTrips,
+      totalSpent,
+      wishlistCount: Array.isArray(wishlist) ? wishlist.length : 0,
+    };
+  }, [rentals, wishlist, today]);
 
-  const closeModal = () => {
-    setShowModal(false);
+  const upcomingRentals = useMemo(
+    () =>
+      rentals
+        .filter((rental) => {
+          if (!rental.startDate) return false;
+          const start = new Date(rental.startDate);
+          return start >= today;
+        })
+        .sort(
+          (a, b) =>
+            new Date(a.startDate || 0).getTime() -
+            new Date(b.startDate || 0).getTime(),
+        ),
+    [rentals, today],
+  );
+
+  if (!user) {
+    return (
+      <div className="py-16 text-center text-gray-600">
+        Sign in to view your renter dashboard.
+      </div>
+    );
+  }
+
+  const loading = rentalsLoading || wishlistLoading || carsLoading;
+
+  const handleBookingConfirmation = async () => {
+    await refetchRentals();
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <Title title="Customer Dashboard" />
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <header>
+    <div className="space-y-6">
+      <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
           <h1 className="text-2xl font-bold text-gray-900">Renter Dashboard</h1>
-          <p className="text-gray-700">Welcome back, {user?.name || 'Renter'}!</p>
-        </header>
-        <div className="w-full md:w-auto">
-          <label htmlFor="search-cars" className="sr-only">Search cars</label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <FiSearch className="h-5 w-5 text-gray-400" aria-hidden="true" />
-            </div>
-            <input
-              id="search-cars"
-              type="text"
-              name="search"
-              value={filters.search}
-              onChange={handleFilterChange}
-              placeholder="Search by make, model, or type"
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm"
-              aria-label="Search cars by make, model, or type"
-            />
-          </div>
+          <p className="text-sm text-gray-500">
+            View your bookings, plan upcoming trips, and explore new rides.
+          </p>
         </div>
-      </div>
+        <NotificationBell />
+      </header>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          title="Active Rentals"
-          value={activeRentals}
+          title="Total Bookings"
+          value={loading ? '...' : stats.totalBookings}
+          subtitle="All-time reservations"
           icon={FiCalendar}
-          color="green"
-          loading={loading}
+          accent="blue"
         />
         <StatCard
-          title="Past Rentals"
-          value={pastRentals}
+          title="Upcoming Trips"
+          value={loading ? '...' : stats.upcomingTrips}
+          subtitle="Scheduled rentals"
           icon={FiClock}
-          color="blue"
-          loading={loading}
+          accent="green"
+        />
+        <StatCard
+          title="Total Spent"
+          value={loading ? '...' : `$${stats.totalSpent.toFixed(2)}`}
+          subtitle="Completed bookings"
+          icon={FiDollarSign}
+          accent="orange"
         />
         <StatCard
           title="Saved Cars"
-          value={savedCars}
-          icon={FaCar}
-          color="orange"
-          loading={loading}
+          value={loading ? '...' : stats.wishlistCount}
+          subtitle="Your wishlist"
+          icon={FiHeart}
+          accent="pink"
         />
-      </div>
-
-      {/* Filters */}
-      <section aria-labelledby="filter-heading" className="bg-white rounded-lg shadow-sm p-4 mb-6">
-        <div className="flex items-center mb-4">
-          <FiFilter className="h-5 w-5 text-gray-500 mr-2" aria-hidden="true" />
-          <h2 id="filter-heading" className="text-lg font-medium text-gray-900">Filter Cars</h2>
-        </div>
-        
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          applyFilters();
-        }}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <label htmlFor="car-type" className="block text-sm font-medium text-gray-700 mb-1">
-                Car Type
-              </label>
-              <select
-                id="car-type"
-                name="type"
-                value={filters.type}
-                onChange={handleFilterChange}
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm rounded-md"
-                aria-label="Select car type"
-              >
-                <option value="">All Types</option>
-                <option value="sedan">Sedan</option>
-                <option value="suv">SUV</option>
-                <option value="truck">Truck</option>
-                <option value="luxury">Luxury</option>
-                <option value="economy">Economy</option>
-              </select>
-            </div>
-            
-            <div>
-              <label htmlFor="min-price" className="block text-sm font-medium text-gray-700 mb-1">
-                Min Price ($)
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-500 sm:text-sm">$</span>
-                </div>
-                <input
-                  type="number"
-                  name="minPrice"
-                  id="min-price"
-                  value={filters.minPrice}
-                  onChange={handleFilterChange}
-                  placeholder="0"
-                  min="0"
-                  className="focus:ring-primary focus:border-primary block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
-                  aria-label="Minimum price in dollars"
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label htmlFor="max-price" className="block text-sm font-medium text-gray-700 mb-1">
-                Max Price ($)
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-500 sm:text-sm">$</span>
-                </div>
-                <input
-                  type="number"
-                  name="maxPrice"
-                  id="max-price"
-                  value={filters.maxPrice}
-                  onChange={handleFilterChange}
-                  placeholder="1000"
-                  min="0"
-                  className="focus:ring-primary focus:border-primary block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
-                  aria-label="Maximum price in dollars"
-                />
-              </div>
-            </div>
-            
-            <div className="flex items-end">
-              <button
-                type="submit"
-                className="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                aria-label="Apply filters"
-              >
-                Apply Filters
-              </button>
-            </div>
-          </div>
-        </form>
       </section>
 
-      {/* Available Cars */}
-      <section aria-labelledby="available-cars-heading" className="mb-12">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <h2 id="available-cars-heading" className="text-2xl font-bold text-gray-900">Available Cars</h2>
-          <Link 
-            to="/renter/browse" 
-            className="inline-flex items-center text-primary hover:text-primary-dark hover:underline focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary rounded"
-            aria-label="View all available cars"
-          >
-            View All <FiArrowUpRight className="ml-1 h-4 w-4" aria-hidden="true" />
-          </Link>
+      <section className="rounded-lg bg-white p-6 shadow-sm">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Upcoming Reservations
+          </h2>
+          {upcomingRentals.length > 0 && (
+            <span className="text-xs font-medium text-gray-400">
+              {upcomingRentals.length} scheduled
+            </span>
+          )}
         </div>
-        
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" role="status" aria-live="polite" aria-label="Loading cars">
-            {[1, 2, 3].map((i) => (
-              <article 
-                key={i} 
-                className="bg-white rounded-lg shadow-md p-4 h-80 animate-pulse"
-                aria-hidden="true"
-              >
-                <div className="bg-gray-200 h-40 rounded-md mb-4"></div>
-                <div className="space-y-2">
-                  <div className="bg-gray-200 h-4 rounded w-3/4"></div>
-                  <div className="bg-gray-200 h-4 rounded w-1/2"></div>
-                  <div className="bg-gray-200 h-4 rounded w-2/3"></div>
-                </div>
-              </article>
-            ))}
-            <span className="sr-only">Loading available cars...</span>
-          </div>
-        ) : cars.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" role="list" aria-label="List of available cars">
-            {cars.slice(0, 6).map((car) => (
-              <article 
-                key={car.id} 
-                onClick={() => {
-                  setSelectedCar(car);
-                  setShowModal(true);
-                }} 
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setSelectedCar(car);
-                    setShowModal(true);
-                  }
-                }}
-                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                role="article"
-                tabIndex={0}
-                aria-label={`View details for ${car.make} ${car.model}`}
-              >
-                <CarCard car={car} />
-              </article>
-            ))}
-          </div>
+          <p className="text-sm text-gray-500">Loading reservations...</p>
+        ) : upcomingRentals.length === 0 ? (
+          <p className="text-sm text-gray-500">
+            You have no upcoming trips. Start by booking a car below.
+          </p>
         ) : (
-          <div className="bg-gray-50 rounded-lg p-8 text-center">
-            <FaCar className="mx-auto h-12 w-12 text-gray-400" aria-hidden="true" />
-            <h3 className="mt-3 text-lg font-medium text-gray-900">No cars available</h3>
-            <p className="mt-1 text-gray-500">Check back later for new listings.</p>
-            <div className="mt-6">
-              <button
-                type="button"
-                onClick={() => window.location.reload()}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-              >
-                Refresh
-              </button>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* Recent Rentals */}
-      <div>
-        <h2 className="text-xl font-bold mb-4">Your Recent Rentals</h2>
-        
-        {loading ? (
-          <div className="bg-white rounded-lg shadow-md p-4 animate-pulse">
-            <div className="bg-gray-200 h-16 rounded-md mb-4"></div>
-            <div className="bg-gray-200 h-16 rounded-md"></div>
-          </div>
-        ) : rentals.length > 0 ? (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Car</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-500">
+                    Car
+                  </th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-500">
+                    Dates
+                  </th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-500">
+                    Status
+                  </th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-500">
+                    Amount
+                  </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {rentals.map((rental) => {
-                  const carImage = rental.car?.image || 'https://via.placeholder.com/40x40';
-                  const carInfo = rental.car 
-                    ? `${rental.car.year || ''} ${rental.car.make || ''} ${rental.car.model || ''}`.trim() 
-                    : 'Car information not available';
-                  
+              <tbody className="divide-y divide-gray-100">
+                {upcomingRentals.slice(0, 6).map((rental) => {
+                  const car = rental.car ?? {};
+                  const amount = safeNumber(
+                    rental.totalCost ?? rental.totalAmount ?? rental.payment?.amount,
+                  );
                   return (
-                  <tr key={rental.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="h-10 w-10 flex-shrink-0">
-                          <img className="h-10 w-10 rounded-full object-cover" src={carImage} alt="" />
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{carInfo}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{new Date(rental.startDate).toLocaleDateString()} - {new Date(rental.endDate).toLocaleDateString()}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${rental.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                        {rental.status === 'active' ? 'Active' : 'Completed'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      ${rental.totalAmount}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Link to={`/rentals/${rental.id}`} className="text-primary hover:text-primary-dark">View Details</Link>
-                    </td>
-                  </tr>
-                )
-              })}
+                    <tr key={rental.id}>
+                      <td className="px-4 py-3 text-gray-900">
+                        {car.make} {car.model}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500">
+                        {rental.startDate
+                          ? format(new Date(rental.startDate), 'MMM d, yyyy')
+                          : 'N/A'}{' '}
+                        &ndash;{' '}
+                        {rental.endDate
+                          ? format(new Date(rental.endDate), 'MMM d, yyyy')
+                          : 'N/A'}
+                      </td>
+                      <td className="px-4 py-3 capitalize text-gray-600">
+                        {rental.status}
+                      </td>
+                      <td className="px-4 py-3 text-gray-900">
+                        ${amount.toFixed(2)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
+        )}
+      </section>
+
+      <section className="rounded-lg bg-white p-6 shadow-sm">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Recommended Cars
+          </h2>
+          <Link
+            to="/cars"
+            className="text-sm font-medium text-primary hover:text-primary-dark"
+          >
+            Browse all cars
+          </Link>
+        </div>
+
+        {carsLoading ? (
+          <p className="text-sm text-gray-500">Loading cars...</p>
+        ) : recommendedCars.length === 0 ? (
+          <p className="text-sm text-gray-500">
+            No cars available at the moment. Please check back later.
+          </p>
         ) : (
-          <div className="bg-gray-50 rounded-lg p-8 text-center">
-            <FiCalendar className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No rental history</h3>
-            <p className="mt-1 text-sm text-gray-500">Book a car to see your rental history here.</p>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {recommendedCars.map((car) => (
+              <div
+                key={car.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelectedCar(car)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    setSelectedCar(car);
+                  }
+                }}
+                className="text-left outline-none focus:ring-2 focus:ring-orange-500 rounded-lg"
+              >
+                <CarCard car={car} />
+              </div>
+            ))}
           </div>
         )}
-      </div>
+      </section>
 
-      {/* Car Detail Modal */}
-      {showModal && selectedCar && (
-        <CarDetailModal 
-          car={selectedCar} 
-          isOpen={showModal} 
-          onClose={closeModal}
+      {selectedCar && (
+        <CarDetailModal
+          car={selectedCar}
+          onClose={() => setSelectedCar(null)}
           onBook={handleBookCar}
         />
       )}

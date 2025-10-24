@@ -1,331 +1,363 @@
-import React from "react";
-import { Link } from "react-router-dom";
-import Title from '../components/Title';
-import { useSelector } from "react-redux";
-import { FiPlus, FiArrowUpRight, FiDollarSign, FiCalendar, FiUser } from "react-icons/fi";
-import { FaCar } from "react-icons/fa";
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import { format } from "date-fns";
-import { useGetCarsByOwnerIdQuery } from "../store/features/cars/carsApiSlice";
-import { useGetRentalsByOwnerIdQuery } from "../store/features/rentals/rentalsApiSlice";
-import { selectCurrentUser } from "../store/features/auth/authSlice";
+import React, { useMemo } from 'react';
+import { useSelector } from 'react-redux';
+import { Link } from 'react-router-dom';
+import { format } from 'date-fns';
+import {
+  FiBriefcase,
+  FiClock,
+  FiDollarSign,
+  FiTrendingUp,
+} from 'react-icons/fi';
+import { FaCar } from 'react-icons/fa';
+import { selectCurrentUser } from '../store/features/auth/authSlice';
+import { useGetCarsByOwnerIdQuery } from '../store/features/cars/carsApiSlice';
+import { useGetRentalsByOwnerIdQuery } from '../store/features/rentals/rentalsApiSlice';
+import NotificationBell from '../components/NotificationBell.jsx';
 
-// StatCard component for displaying statistics with icons and trends
-const StatCard = ({ title, value, icon: Icon, color, trend, change, loading = false }) => {
+const StatCard = ({ title, value, subtitle, icon: Icon, accent = 'gray' }) => {
+  const accentMap = {
+    blue: 'bg-blue-100 text-blue-600',
+    green: 'bg-green-100 text-green-600',
+    orange: 'bg-orange-100 text-orange-600',
+    purple: 'bg-purple-100 text-purple-600',
+    gray: 'bg-gray-100 text-gray-600',
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow p-6 flex items-center justify-between">
+    <article className="flex items-center justify-between rounded-lg bg-white p-5 shadow-sm">
       <div>
-        <p className="text-gray-500 text-sm font-medium">{title}</p>
-        <h3 className="text-2xl font-bold mt-1">{loading ? '...' : value}</h3>
-        {change && (
-          <p className={`text-sm mt-1 ${trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
-            {trend === 'up' ? '+' : '-'}{change}% {trend === 'up' ? 'increase' : 'decrease'}
-          </p>
+        <p className="text-sm font-medium text-gray-500">{title}</p>
+        <p className="mt-1 text-2xl font-bold text-gray-900">{value}</p>
+        {subtitle && (
+          <p className="mt-1 text-xs text-gray-400">{subtitle}</p>
         )}
       </div>
-      <div className={`p-3 rounded-full bg-${color}-100`}>
-        <Icon className={`h-6 w-6 text-${color}-600`} />
+      <div
+        className={`flex h-12 w-12 items-center justify-center rounded-full ${accentMap[accent]}`}
+      >
+        <Icon className="h-5 w-5" />
       </div>
-    </div>
+    </article>
   );
+};
+
+const safeNumber = (input) => {
+  if (input === null || input === undefined) return 0;
+  const numeric =
+    typeof input === 'number'
+      ? input
+      : parseFloat(String(input).replace(/[^0-9.-]+/g, ''));
+  return Number.isFinite(numeric) ? numeric : 0;
 };
 
 const OwnerDashboard = () => {
   const user = useSelector(selectCurrentUser);
-  
-  // Use RTK Query hooks to fetch data
-  const { 
-    data: carsResponse = {},
+
+  const {
+    data: carsResponse,
     isLoading: carsLoading,
-    isError: carsError,
-    error: carsErrorData
   } = useGetCarsByOwnerIdQuery(user?.id, {
-    skip: !user?.id
+    skip: !user?.id,
   });
-  
-  // Extract cars from the response, handling both direct array and nested data property
-  const cars = Array.isArray(carsResponse) 
-    ? carsResponse 
-    : Array.isArray(carsResponse?.data) 
-      ? carsResponse.data 
-      : [];
-  
-  const { 
-    data: rentalsResponse = {},
+
+  const {
+    data: rentalsResponse,
     isLoading: rentalsLoading,
-    isError: rentalsError,
-    error: rentalsErrorData
   } = useGetRentalsByOwnerIdQuery(user?.id, {
-    skip: !user?.id
+    skip: !user?.id,
   });
-  
-  // Extract rentals from the response, handling both direct array and nested data property
-  const rentals = Array.isArray(rentalsResponse) 
-    ? rentalsResponse 
-    : Array.isArray(rentalsResponse?.data) 
-      ? rentalsResponse.data 
-      : [];
-  
-  // Show errors in console
-  if (carsError) {
-    console.error('Error fetching cars:', carsErrorData);
-    toast.error('Failed to load cars data');
+
+  const cars = useMemo(() => {
+    const data = carsResponse?.data ?? carsResponse ?? [];
+    return Array.isArray(data) ? data : [];
+  }, [carsResponse]);
+
+  const rentals = useMemo(() => {
+    const data = rentalsResponse?.data ?? rentalsResponse ?? [];
+    return Array.isArray(data) ? data : [];
+  }, [rentalsResponse]);
+
+  const today = useMemo(() => new Date(), []);
+
+  const stats = useMemo(() => {
+    const totalRevenue = rentals.reduce(
+      (sum, rental) =>
+        sum + safeNumber(rental.totalCost ?? rental.amount ?? rental.payment?.amount),
+      0,
+    );
+
+    const activeRentals = rentals.filter((rental) =>
+      ['confirmed', 'in_progress'].includes(rental.status),
+    ).length;
+
+    const pendingRequests = rentals.filter(
+      (rental) => rental.status === 'pending',
+    ).length;
+
+    const upcomingRentals = rentals.filter((rental) => {
+      if (!rental.startDate) return false;
+      const start = new Date(rental.startDate);
+      return (
+        start >= today &&
+        ['pending', 'confirmed', 'in_progress'].includes(rental.status)
+      );
+    }).length;
+
+    return {
+      totalCars: cars.length,
+      totalRevenue,
+      activeRentals,
+      pendingRequests,
+      upcomingRentals,
+    };
+  }, [cars.length, rentals, today]);
+
+  const latestRentals = useMemo(
+    () =>
+      [...rentals].sort(
+        (a, b) =>
+          new Date(b.createdAt || b.startDate || 0).getTime() -
+          new Date(a.createdAt || a.startDate || 0).getTime(),
+      ),
+    [rentals],
+  );
+
+  if (!user) {
+    return (
+      <div className="py-16 text-center text-gray-600">
+        Sign in to view your owner dashboard.
+      </div>
+    );
   }
-  
-  if (rentalsError) {
-    console.error('Error fetching rentals:', rentalsErrorData);
-    toast.error('Failed to load rentals data');
-  }
-  
-  // Calculate stats
-  const totalCars = cars.length;
-  const activeRentals = rentals.filter(rental => 
-    rental.status === 'active' || rental.status === 'pending'
-  ).length;
-  
-  // Calculate total earnings from completed rentals
-  const totalEarnings = rentals
-    .filter(rental => rental.status === 'completed')
-    .reduce((sum, rental) => sum + (rental.totalAmount || 0), 0);
-  
-  // Determine if any data is still loading
-  const loading = carsLoading;
-  const loadingRentals = rentalsLoading;
+
+  const loading = carsLoading || rentalsLoading;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <Title title="Car Owner Dashboard" />
-      <div className="flex justify-between items-center mb-8">
+    <div className="space-y-6">
+      <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Car Owner Dashboard</h1>
-          <p className="text-gray-600">Welcome back, {user?.name || 'Owner'}!</p>
+          <h1 className="text-2xl font-bold text-gray-900">Owner Dashboard</h1>
+          <p className="text-sm text-gray-500">
+            Track fleet performance, bookings, and earnings in real time.
+          </p>
         </div>
-        <Link
-          to="/owner/add_cars"
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-        >
-          <FiPlus className="-ml-1 mr-2 h-5 w-5" />
-          Add New Car
-        </Link>
-      </div>
+        <NotificationBell />
+      </header>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
           title="Total Cars"
-          value={totalCars}
+          value={loading ? '...' : stats.totalCars}
+          subtitle="Vehicles currently listed"
           icon={FaCar}
-          color="blue"
-          loading={loading}
+          accent="blue"
         />
         <StatCard
           title="Active Rentals"
-          value={activeRentals}
-          icon={FiCalendar}
-          color="green"
-          trend="up"
-          change="12"
-          loading={loading}
+          value={loading ? '...' : stats.activeRentals}
+          subtitle="Bookings in progress or confirmed"
+          icon={FiBriefcase}
+          accent="green"
         />
         <StatCard
-          title="Total Earnings"
-          value={`$${totalEarnings}`}
-          icon={FiDollarSign}
-          color="orange"
-          trend="up"
-          change="8"
-          loading={loading}
+          title="Pending Requests"
+          value={loading ? '...' : stats.pendingRequests}
+          subtitle="Awaiting your confirmation"
+          icon={FiClock}
+          accent="orange"
         />
-      </div>
+        <StatCard
+          title="Lifetime Revenue"
+          value={loading ? '...' : `$${stats.totalRevenue.toFixed(2)}`}
+          subtitle="Sum of completed and confirmed rentals"
+          icon={FiDollarSign}
+          accent="purple"
+        />
+      </section>
 
-      {/* My Cars Section */}
-      <div className="bg-white shadow rounded-lg p-6 mb-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-lg font-medium text-gray-900">My Cars</h2>
-          <Link
-            to="owner/cars"
-            className="text-sm font-medium text-orange-600 hover:text-orange-500 flex items-center"
-          >
-            View All
-            <FiArrowUpRight className="ml-1 h-4 w-4" />
-          </Link>
+      <section className="grid gap-6 lg:grid-cols-2">
+        <div className="rounded-lg bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Upcoming Rentals
+            </h2>
+            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-600">
+              <FiTrendingUp className="h-4 w-4" />
+              {stats.upcomingRentals} scheduled
+            </span>
+          </div>
+          {loading ? (
+            <p className="text-sm text-gray-500">Loading rentals...</p>
+          ) : stats.upcomingRentals === 0 ? (
+            <p className="text-sm text-gray-500">No upcoming rentals.</p>
+          ) : (
+            <ul className="space-y-4">
+              {latestRentals
+                .filter((rental) => {
+                  if (!rental.startDate) return false;
+                  const start = new Date(rental.startDate);
+                  return (
+                    start >= today &&
+                    ['pending', 'confirmed', 'in_progress'].includes(rental.status)
+                  );
+                })
+                .slice(0, 5)
+                .map((rental) => {
+                  const car = rental.car ?? cars.find((c) => c.id === rental.carId) ?? {};
+                  const start = rental.startDate
+                    ? format(new Date(rental.startDate), 'MMM d, yyyy')
+                    : 'N/A';
+                  const end = rental.endDate
+                    ? format(new Date(rental.endDate), 'MMM d, yyyy')
+                    : 'N/A';
+
+                  return (
+                    <li
+                      key={rental.id}
+                      className="flex items-start justify-between rounded-lg border border-gray-100 p-4"
+                    >
+                      <div>
+                        <p className="font-semibold text-gray-900">
+                          {car.make} {car.model}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {start} &ndash; {end}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {rental.user?.name || 'Customer'}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                        {rental.status}
+                      </span>
+                    </li>
+                  );
+                })}
+            </ul>
+          )}
+        </div>
+
+        <div className="rounded-lg bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">Your Fleet</h2>
+            <Link
+              to="/owner/cars"
+              className="text-sm font-medium text-primary hover:text-primary-dark"
+            >
+              Manage cars
+            </Link>
+          </div>
+          {loading ? (
+            <p className="text-sm text-gray-500">Loading cars...</p>
+          ) : cars.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              You have not listed any vehicles yet.
+            </p>
+          ) : (
+            <ul className="space-y-4">
+              {cars.slice(0, 5).map((car) => (
+                <li
+                  key={car.id}
+                  className="flex items-center justify-between rounded-lg border border-gray-100 p-4"
+                >
+                  <div>
+                    <p className="font-semibold text-gray-900">
+                      {car.year} {car.make} {car.model}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      ${safeNumber(car.rentalPricePerDay).toFixed(2)} / day &middot;{' '}
+                      {car.type}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-600">
+                    Available
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-lg bg-white p-6 shadow-sm">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Recent Bookings
+          </h2>
+          {rentals.length > 5 && (
+            <Link
+              to="/owner/rentals"
+              className="text-sm font-medium text-primary hover:text-primary-dark"
+            >
+              View all bookings
+            </Link>
+          )}
         </div>
 
         {loading ? (
-          <div className="text-center py-4">Loading cars...</div>
-        ) : cars.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500 mb-4">You haven't listed any cars yet</p>
-            <Link
-              to="/owner/add_cars"
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700"
-            >
-              <FiPlus className="-ml-1 mr-2 h-5 w-5" />
-              Add Your First Car
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {cars.slice(0, 3).map((car) => (
-              <div key={car.id} className="border rounded-lg overflow-hidden">
-                <img
-                  src={car.imageUrl || 'https://www.google.com/imgres?q=car%20suv&imgurl=https%3A%2F%2Fcas.volvocars.com%2Fimage%2Fdynamic%2FMY25_2417%2F536%2Fexterior-aligned-v1%2F47%2F62600%2FR7C000%2FR156%2FFN01%2FTC06%2F_%2F_%2FTP02%2FLR02%2F_%2FGR03%2FT102%2FTJ01%2FNP02%2FTM02%2F_%2F_%2F_%2FJB09%2FT21C%2FLF01%2F_%2F_%2FFH01%2F_%2F_%2F_%2F_%2F_%2Fdefault.png%3Fmarket%3Dus%26client%3Dpdps%26angle%3D7%26bg%3D00000000%26w%3D3840%26imdensity%3D1&imgrefurl=https%3A%2F%2Fwww.volvocars.com%2Fus%2Fcars%2Fsuv%2F&docid=HTQ0fUEUu6LS_M&tbnid=qzAWQ3mjlOhROM&vet=12ahUKEwjvop7Wl_qOAxWbQUEAHUU2CvAQM3oECGYQAA..i&w=3840&h=2161&hcb=2&ved=2ahUKEwjvop7Wl_qOAxWbQUEAHUU2CvAQM3oECGYQAA'}
-                  alt={car.make + ' ' + car.model}
-                  className="w-full h-48 object-cover"
-                />
-                <div className="p-4">
-                  <h3 className="font-medium text-gray-900">{car.make} {car.model}</h3>
-                  <p className="text-gray-500 text-sm">{car.year} • {car.transmission}</p>
-                  <div className="mt-4 flex justify-between items-center">
-                    <span className="font-bold text-orange-600">${car.rentalPricePerDay}/day</span>
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      car.status === 'rented' 
-                        ? 'bg-orange-100 text-orange-800'
-                        : 'bg-green-100 text-green-800' 
-                    }`}>
-                      {car.status === 'rented' ? 'Rented' : 'Available'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Recent Bookings Section */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-lg font-medium text-gray-900">Recent Bookings</h2>
-          <Link
-            to="/bookings"
-            className="text-sm font-medium text-orange-600 hover:text-orange-500 flex items-center"
-          >
-            View All
-            <FiArrowUpRight className="ml-1 h-4 w-4" />
-          </Link>
-        </div>
-
-        {loadingRentals ? (
-          <div className="text-center py-4">Loading bookings...</div>
+          <p className="text-sm text-gray-500">Loading bookings...</p>
         ) : rentals.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="flex justify-center">
-              <FiCalendar className="h-12 w-12 text-gray-300" />
-            </div>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No bookings yet</h3>
-            <p className="mt-1 text-sm text-gray-500">Your booking history will appear here once customers start renting your cars.</p>
-          </div>
+          <p className="text-sm text-gray-500">No bookings yet.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left font-medium text-gray-500">
                     Car
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left font-medium text-gray-500">
                     Customer
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left font-medium text-gray-500">
                     Dates
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left font-medium text-gray-500">
                     Amount
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left font-medium text-gray-500">
                     Status
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {rentals.slice(0, 5).map((rental) => {
-                  // Find the car associated with this rental
-                  const rentalCar = cars.find(car => car.id === rental.carId) || {};
-                  
-                  // Format dates
-                  const startDate = rental.startDate ? new Date(rental.startDate) : null;
-                  const endDate = rental.endDate ? new Date(rental.endDate) : null;
-                  
-                  const formattedStartDate = startDate ? format(startDate, 'MMM d, yyyy') : 'N/A';
-                  const formattedEndDate = endDate ? format(endDate, 'MMM d, yyyy') : 'N/A';
-                  
-                  // Calculate status class
-                  const statusClass = 
-                    rental.status === 'completed' ? 'bg-green-100 text-green-800' :
-                    rental.status === 'active' ? 'bg-blue-100 text-blue-800' :
-                    rental.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    rental.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                    'bg-gray-100 text-gray-800';
-                    
+              <tbody className="divide-y divide-gray-100">
+                {latestRentals.slice(0, 5).map((rental) => {
+                  const car = rental.car ?? cars.find((c) => c.id === rental.carId) ?? {};
+                  const amount = safeNumber(
+                    rental.totalCost ?? rental.amount ?? rental.payment?.amount,
+                  );
+                  const start = rental.startDate
+                    ? format(new Date(rental.startDate), 'MMM d, yyyy')
+                    : 'N/A';
+                  const end = rental.endDate
+                    ? format(new Date(rental.endDate), 'MMM d, yyyy')
+                    : 'N/A';
+
                   return (
-                    <tr key={rental.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 flex-shrink-0 bg-gray-200 rounded-full overflow-hidden">
-                            {rentalCar.image ? (
-                              <img 
-                                className="h-10 w-10 object-cover" 
-                                src={rentalCar.image} 
-                                alt={`${rentalCar.make} ${rentalCar.model}`} 
-                              />
-                            ) : (
-                              <div className="h-10 w-10 flex items-center justify-center">
-                                <FaCar className="text-gray-400" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {rentalCar.make} {rentalCar.model}
-                            </div>
-                            <div className="text-sm text-gray-500">{rentalCar.year}</div>
-                          </div>
-                        </div>
+                    <tr key={rental.id}>
+                      <td className="px-4 py-3 text-gray-900">
+                        {car.make} {car.model}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center mr-2">
-                            <FiUser className="text-gray-500" />
-                          </div>
-                          <div>
-                            <div className="text-sm text-gray-900">{rental.customerName || 'Customer'}</div>
-                            <div className="text-sm text-gray-500">{rental.customerEmail || 'No email provided'}</div>
-                          </div>
-                        </div>
+                      <td className="px-4 py-3 text-gray-700">
+                        {rental.user?.name || 'Customer'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{formattedStartDate} - {formattedEndDate}</div>
-                        <div className="text-sm text-gray-500">{rental.totalDays || 'N/A'} days</div>
+                      <td className="px-4 py-3 text-gray-500">
+                        {start} &ndash; {end}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        ${rental.totalAmount?.toFixed(2) || 'N/A'}
+                      <td className="px-4 py-3 text-gray-900">
+                        ${amount.toFixed(2)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}`}>
-                          {rental.status ? rental.status.charAt(0).toUpperCase() + rental.status.slice(1) : 'Unknown'}
-                        </span>
+                      <td className="px-4 py-3 text-gray-600">
+                        {rental.status}
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
-            
-            {rentals.length > 5 && (
-              <div className="mt-4 text-center">
-                <Link 
-                  to="/bookings" 
-                  className="text-sm font-medium text-orange-600 hover:text-orange-500"
-                >
-                  View all {rentals.length} bookings
-                </Link>
-              </div>
-            )}
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 };

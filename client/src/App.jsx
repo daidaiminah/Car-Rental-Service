@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './store/authContext.jsx';
 import { HelmetProvider } from 'react-helmet-async';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { SocketProvider } from './context/SocketContext.jsx';
 
 import Layout from './components/Layout';
 import AdminLayout from './components/AdminLayout';
@@ -29,6 +30,7 @@ import BrowseCars from './pages/BrowseCars';
 import MyBookings from './pages/MyBookings';
 import Profile from './pages/Profile';
 import AddCar from './pages/AddCar';
+import EditCar from './pages/EditCar';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import Services from './pages/Services';
@@ -127,6 +129,8 @@ function AppContent() {
         <Route path="safety" element={<SafetySupport />} />
         <Route path="cars" element={<Cars />} />
         <Route path="cars/:id" element={<CarDetails />} />
+        <Route path="booking-success" element={<BookingSuccess />} />
+        <Route path="booking-cancel" element={<BookingCancel />} />
       </Route>
 
       {/* ============================================
@@ -162,6 +166,7 @@ function AppContent() {
         <Route path="dashboard" element={<OwnerDashboard />} />
         <Route path="cars" element={<MyCars />} />
         <Route path="add_cars" element={<AddCar />} />
+        <Route path="cars/:id/edit" element={<EditCar />} />
         <Route path="cars/:id" element={<CarDetails />} />
         <Route path="rentals" element={<MyRentals />} />
         <Route path="profile" element={<Profile />} />
@@ -200,18 +205,13 @@ function AppContent() {
       } />
       
       {/* Booking flow routes */}
-      <Route path="/booking/success" element={
-        <Layout>
-          <BookingSuccess />
-        </Layout>
+      <Route path="/edit-car/:id" element={
+        <ProtectedRoute requiredRole="owner">
+          <EditCar />
+        </ProtectedRoute>
       } />
-      <Route path="/booking/cancel" element={
-        <Layout>
-          <BookingCancel />
-        </Layout>
-      } />
-
       {/* Auth routes */}
+      
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       
@@ -226,8 +226,10 @@ function App() {
   return (
     <HelmetProvider>
       <AuthProvider>
-        <AppContent />
-        <ScrollToTop />
+        <SocketProvider>
+          <AppContent />
+          <ScrollToTop />
+        </SocketProvider>
       </AuthProvider>
     </HelmetProvider>
   );

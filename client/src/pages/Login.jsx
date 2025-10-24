@@ -12,7 +12,6 @@ const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    role: ''
   });
   const [userType, setUserType] = useState('');
   const [error, setError] = useState('');
@@ -50,16 +49,25 @@ const Login = () => {
       return;
     }
     
+    // Validate email and password
+    if (!formData.email || !formData.password) {
+      toast.error('Please enter both email and password');
+      return;
+    }
+
     // Show loading toast
     const toastId = toast.loading('Signing in...');
 
     try {
-      // Map user type to role and add to form data
+      // Map user type to role
       const role = userTypeToRole[userType];
-      const loginData = { ...formData, role };
       
-      // Call the login mutation from the store
-      const response = await login(loginData).unwrap();
+      // Call the login mutation with email, password, and role
+      const response = await login({
+        email: formData.email,
+        password: formData.password,
+        role
+      }).unwrap();
       
       // The response should include both token and user data
       if (response && response.token) {
@@ -67,11 +75,12 @@ const Login = () => {
         toast.dismiss(toastId);
         
         // Show success message
-        const welcomeMessage = response.user?.name 
-          ? `Welcome back, ${response.user.name}!` 
+        const welcomeMessage = response.name 
+          ? `Welcome back, ${response.name}!`  
           : 'Successfully logged in!';
         toast.success(welcomeMessage);
-        // Transform the response to match what setCredentials expects
+        
+        // Prepare user data for Redux store
         const userData = {
           id: response.id,
           name: response.name,
@@ -82,7 +91,7 @@ const Login = () => {
         // Store the token in localStorage
         localStorage.setItem('token', response.token);
         
-        // Dispatch the setCredentials action with the transformed data
+        // Dispatch the setCredentials action
         dispatch(setCredentials({
           user: userData,
           token: response.token
@@ -90,11 +99,11 @@ const Login = () => {
         
         // Determine redirect path based on role
         let redirectPath = '/';
-        if (userData.role === 'admin') {
+        if (response.role === 'admin') {
           redirectPath = '/admin';
-        } else if (userData.role === 'owner') {
+        } else if (response.role === 'owner') {
           redirectPath = '/owner';
-        } else if (userData.role === 'customer') {
+        } else if (response.role === 'customer') {
           redirectPath = '/renter';
         }
 
@@ -105,14 +114,10 @@ const Login = () => {
         setTimeout(() => {
           navigate(from, { replace: true });
         }, 1500);
-      } else {
-        // If we get here, the token is missing from the response
-        toast.dismiss(toastId);
-        toast.error('Invalid response from server. Please try again.');
       }
     } catch (err) {
       toast.dismiss(toastId);
-      const errorMessage = err.data?.message || err.error || 'Login failed. Please check your credentials.';
+      const errorMessage = err.message || 'Login failed. Please check your credentials.';
       toast.error(errorMessage);
     }
   };

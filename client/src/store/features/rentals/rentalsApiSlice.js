@@ -54,7 +54,10 @@ export const rentalsApiSlice = createApi({
     
     // Get rentals by owner ID (for owner dashboard)
     getRentalsByOwnerId: builder.query({
-      query: (ownerId) => `/rentals/owner/${ownerId}`,
+      query: (ownerId) => ({
+        url: ownerId ? `/rentals/owner/${ownerId}` : '/rentals/owner/me',
+        method: 'GET'
+      }),
       providesTags: (result) => {
         const rentals = Array.isArray(result?.data) ? result.data : 
                       Array.isArray(result) ? result : [];
@@ -117,6 +120,21 @@ export const rentalsApiSlice = createApi({
       ],
     }),
     
+    // Update rental status
+    updateRentalStatus: builder.mutation({
+      query: ({ rentalId, status, rejectionReason }) => ({
+        url: `/rentals/${rentalId}/status`,
+        method: 'PATCH',
+        body: { status, rejectionReason },
+      }),
+      invalidatesTags: (result, error, { rentalId }) => [
+        { type: 'Rentals', id: rentalId },
+        { type: 'Rentals', id: 'LIST' },
+        { type: 'Rentals', id: 'RENTER_LIST' },
+        { type: 'Rentals', id: 'OWNER_LIST' },
+      ],
+    }),
+    
     // Delete a rental
     deleteRental: builder.mutation({
       query: (id) => ({
@@ -142,5 +160,6 @@ export const {
   useGetRentalByIdQuery,
   useCreateRentalMutation,
   useUpdateRentalMutation,
+  useUpdateRentalStatusMutation,
   useDeleteRentalMutation,
 } = rentalsApiSlice;

@@ -5,18 +5,10 @@ export const usersApiSlice = createApi({
   baseQuery: fetchBaseQuery({ 
     baseUrl: import.meta.env.VITE_API_BASE_URL,
     prepareHeaders: (headers, { getState }) => {
-      // Get token from localStorage
-      const token = localStorage.getItem('token');
-      console.log('Current token:', token); // Debug log
-      
-      // If we have a token, add it to the headers
+      const token = getState()?.auth?.token || localStorage.getItem('token');
       if (token) {
         headers.set('authorization', `Bearer ${token}`);
-        console.log('Authorization header set with token'); // Debug log
-      } else {
-        console.warn('No token found in localStorage'); // Debug log
       }
-      
       return headers;
     },
   }),
@@ -71,7 +63,7 @@ export const usersApiSlice = createApi({
       },
       // Instead of invalidating, we provide the updated user data directly to the cache.
       // This is more efficient as it avoids a follow-up refetch.
-      providesTags: (result, error, arg) => [{ type: 'User', id: result?.data?.id || 'CURRENT' }],
+      invalidatesTags: [{ type: 'User', id: 'CURRENT' }],
     }),
     
       // Change password
