@@ -30,10 +30,11 @@ const dbConfig = {
     idle: 10000,
   },
   dialectOptions: {
-    ssl: process.env.NODE_ENV === 'production' 
-      ? { require: true, rejectUnauthorized: false } 
-      : false,
-  },
+      ssl: {
+        require: true,
+        rejectUnauthorized: false,
+      },
+    },
 };
 
 // Initialize Sequelize with the configuration
