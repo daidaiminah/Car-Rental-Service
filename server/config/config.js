@@ -1,7 +1,7 @@
-import dotenv from "dotenv";
+import env from "dotenv";
 
 // Load environment variables from .env file
-dotenv.config();
+env.config();
 
 export default {
   development: {

@@ -1,7 +1,7 @@
 import { Sequelize } from 'sequelize';
-import dotenv from 'dotenv';
+import env from 'dotenv';
 
-dotenv.config();
+env.config();
 
 
 // Log environment for debugging
