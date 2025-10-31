@@ -99,7 +99,7 @@ app.use("/api/contact", contactRoutes);
 
 
 // Determine port - Render and other hosts inject one via environment
-const PORT = parseInt(process.env.PORT, 10) || 3001;
+const PORT = parseInt(process.env.PORT, 10) || 4005;
 
 // Database connection and server start
 const startServer = async () => {
