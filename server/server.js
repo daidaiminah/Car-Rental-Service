@@ -98,11 +98,8 @@ app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/contact", contactRoutes);
 
 
-// Set default port to 3001 if not specified in environment
-const PORT = process.env.PORT || 3001;
-
-// Force the port to 3001 for development
-const serverPort = 3001;
+// Determine port - Render and other hosts inject one via environment
+const PORT = parseInt(process.env.PORT, 10) || 3001;
 
 // Database connection and server start
 const startServer = async () => {
@@ -117,8 +114,8 @@ const startServer = async () => {
       cors: corsOptions
     });
 
-    httpServer.listen(serverPort, () => {
-      console.log(`Server is running on port ${serverPort}`);
+    httpServer.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
     });
   } catch (error) {
     console.error('Unable to connect to the database:', error);
