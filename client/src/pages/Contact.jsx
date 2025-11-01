@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaClock, FaFacebook, FaTwitter, FaInstagram, FaLinkedin } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import Hero from '../components/common/Hero';
-import { getApiBaseUrl } from '../utils/env';
+import { getApiBaseUrl } from '../utils/socketEnv';
 
 const Contact = () => {
   const [formData, setFormData] = useState({
