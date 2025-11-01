@@ -3,7 +3,7 @@ import path from 'path';
 import { Sequelize, DataTypes } from 'sequelize';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import { sequelize } from '../config/database.js';
+import sequelize from '../utils/sequelize.js';
 
 // Load environment variables before any DB operations
 dotenv.config();

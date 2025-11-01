@@ -12,10 +12,6 @@ import reviewRoutes from "./routers/reviewRoutes.js";
 import notificationRoutes from "./routers/notificationRoutes.js";
 import contactRoutes from "./routers/contactRoutes.js";
 import cors from 'cors';
-// import { createApiUser } from "./utils/momo.js";
-// import { generateApiKey } from "./utils/momo.js";
-// import { getAccessToken } from "./utils/momo.js";
-import { testConnection } from "./config/database.js";
 import paymentRoutes from "./routers/paymentRoutes.js";
 import wishlistRoutes from "./routers/wishlistRoutes.js";
 import { initSocket } from "./socket/index.js";
@@ -45,45 +41,12 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename); 
-
-// Serve all static files from the 'public' directory
-// This makes '/uploads/avatars/image.jpg' accessible via 'http://localhost:3001/uploads/avatars/image.jpg'
 app.use(express.static(path.join(__dirname, 'public')));
-// --- End Static File Serving ---
 
 // Root route
 app.get("/", (req, res) => {
     res.send("Car Rental API - Welcome!");
 });
-
-// app.get("/createApiUser", (req, res) => {
-//     const userId = createApiUser();
-//     res.json({
-//         message: "Api User created successfully",
-//     })
-//     console.log(userId)
-// });
-
-// app.get("/generateApiKey", (req, res) => {
-//   const apiKey = generateApiKey();
-//   res.json({
-//       message: "Api Key generated successfully",
-//   })
-//   console.log(apiKey)
-//  });
-
-// app.get("/getAccessToken", async (req, res) => {
-//   try {
-//     const accessToken = await getAccessToken();
-//     res.json({
-//       message: "Access token retrieved successfully",
-//       accessToken,
-//     });
-//   } catch (error) {
-//     console.error('Error getting access token:', error);
-//     res.status(500).json({ message: 'Failed to get access token' });
-//   }
-// });
 
 // Mount API routes
 app.use("/api/auth", authRoute);
@@ -108,7 +71,6 @@ const startServer = async () => {
     await db.sequelize.authenticate();
     console.log('Database connection has been established successfully.');
     
-    await testConnection();
     // Start the server
     initSocket(httpServer, {
       cors: corsOptions
