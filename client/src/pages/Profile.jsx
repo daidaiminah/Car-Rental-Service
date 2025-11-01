@@ -20,7 +20,7 @@ import {
 } from '../store/features/users/usersApiSlice';
 import OwnerDashboard from '../components/OwnerDashboard';
 import RenterDashboard from '../components/RenterDashboard';
-import { getApiBaseUrl } from '../utils/env';
+import { getApiBaseUrl } from '../utils/socketEnv';
 
 const FALLBACK_AVATAR =
   'https://via.placeholder.com/160?text=Profile';

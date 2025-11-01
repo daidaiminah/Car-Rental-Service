@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import { getApiBaseUrl } from '../../../utils/env';
+import { getApiBaseUrl } from '../../../utils/socketEnv';
 
 export const customersApiSlice = createApi({
   reducerPath: 'customersApi',

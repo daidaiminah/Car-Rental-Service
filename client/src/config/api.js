@@ -1,4 +1,4 @@
-import { getApiBaseUrl } from '../utils/env';
+import { getApiBaseUrl } from '../utils/socketEnv';
 
 const API_BASE_URL = getApiBaseUrl();
 
