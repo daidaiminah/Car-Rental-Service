@@ -13,7 +13,7 @@
     "prestart": "npm run deploy:setup",
     "render-build": "npm run lint && npm run deploy:setup",
     "deploy:setup": "node scripts/run-migrations.js",
-    "lint": "eslint .",
+    "lint": "eslint",
     "db:migrate": "cross-env NODE_OPTIONS=--experimental-specifier-resolution=node npx sequelize-cli db:migrate",
     "db:migrate:undo": "cross-env NODE_OPTIONS=--experimental-specifier-resolution=node npx sequelize-cli db:migrate:undo",
     "db:seed": "cross-env NODE_OPTIONS=--experimental-specifier-resolution=node npx sequelize-cli db:seed:all",
@@ -32,6 +32,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
+    "cross-env": "^7.0.3",
     "express-validator": "^7.2.1",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
@@ -46,6 +47,7 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.10",
-    "sequelize-cli": "^6.6.3"
+    "sequelize-cli": "^6.6.3",
+    "eslint": "^9.9.0"
   }
 }
