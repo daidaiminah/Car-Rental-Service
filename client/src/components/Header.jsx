@@ -73,7 +73,7 @@ const Header = ({ onMenuClick }) => {
     setIsProfileOpen(false);
   };
 
-  // Add shadow on scroll
+  
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
@@ -192,7 +192,7 @@ const Header = ({ onMenuClick }) => {
           {isAuthenticated ? (
             <Link
               to="/"
-              className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark"
+              className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-primary hover:bg-primary-dark"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               View Public Site
@@ -301,7 +301,7 @@ const Header = ({ onMenuClick }) => {
       </div>
 
       {/* Main header */}
-      <header className="sticky top-0 z-10 bg-white shadow-sm">
+      <header className="sticky top-0 z-10 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
@@ -313,7 +313,7 @@ const Header = ({ onMenuClick }) => {
 
             {/* Search bar - Initially hidden, shown when search icon is clicked */}
             <div 
-              className={`absolute left-0 right-0 top-full bg-white shadow-md py-2 px-4 z-50 transition-all duration-300 ${
+              className={`absolute left-0 right-0 top-full bg-white py-2 px-4 z-50 transition-all duration-300 ${
                 isSearchOpen ? 'opacity-100 visible' : 'opacity-0 invisible h-0 overflow-hidden'
               }`}
               ref={searchRef}
@@ -340,7 +340,7 @@ const Header = ({ onMenuClick }) => {
               
               {/* Search results dropdown */}
               {showSearchResults && searchResults.length > 0 && (
-                <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto max-h-60">
+                <div className="absolute z-10 mt-1 w-full bg-white rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto max-h-60">
                   {searchResults.map((item) => (
                     <Link
                       key={item.id}
@@ -400,7 +400,7 @@ const Header = ({ onMenuClick }) => {
 
                   {/* Dropdown menu */}
                   {isProfileOpen && (
-                    <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                    <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
                       <div className="py-1">
                         <Link
                           to={getDashboardUrl()}

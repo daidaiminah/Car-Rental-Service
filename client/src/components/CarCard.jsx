@@ -5,7 +5,7 @@ import { FiStar, FiMapPin, FiUsers, FiDroplet, FiClock } from 'react-icons/fi';
 
 const CarCard = ({ car }) => {
   return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300">
+    <div className="bg-white rounded-xl overflow-hidden duration-300">
       <div className="relative">
         <img 
           src={car.imageUrl || car.image || 'https://via.placeholder.com/300x200?text=Car+Image'} 

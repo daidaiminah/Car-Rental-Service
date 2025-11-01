@@ -102,7 +102,7 @@ const CarDetailModal = ({ car, onClose, onBook }) => {
         {/* Navigation arrows */}
         <button 
           onClick={prevImage}
-          className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-light p-2 rounded-full shadow-md hover:bg-light-dark transition-colors duration-200"
+          className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-light p-2 rounded-full hover:bg-light-dark transition-colors duration-200"
           aria-label="Previous image"
         >
           <FiChevronLeft size={24} className="text-secondary" />
@@ -110,7 +110,7 @@ const CarDetailModal = ({ car, onClose, onBook }) => {
         
         <button 
           onClick={nextImage}
-          className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-light p-2 rounded-full shadow-md hover:bg-light-dark transition-colors duration-200"
+          className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-light p-2 rounded-full hover:bg-light-dark transition-colors duration-200"
           aria-label="Next image"
         >
           <FiChevronRight size={24} className="text-secondary" />
