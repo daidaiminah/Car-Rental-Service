@@ -8,7 +8,17 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "seed": "node --experimental-json-modules seeders/seed.js"
+    "seed": "node --experimental-json-modules seeders/seed.js",
+    "build": "npm run lint && npm run deploy:setup",
+    "prestart": "npm run deploy:setup",
+    "render-build": "npm run lint && npm run deploy:setup",
+    "deploy:setup": "node scripts/run-migrations.js",
+    "lint": "eslint .",
+    "db:migrate": "cross-env NODE_OPTIONS=--experimental-specifier-resolution=node npx sequelize-cli db:migrate",
+    "db:migrate:undo": "cross-env NODE_OPTIONS=--experimental-specifier-resolution=node npx sequelize-cli db:migrate:undo",
+    "db:seed": "cross-env NODE_OPTIONS=--experimental-specifier-resolution=node npx sequelize-cli db:seed:all",
+    "db:seed:undo": "cross-env NODE_OPTIONS=--experimental-specifier-resolution=node npx sequelize-cli db:seed:undo:all",
+    "db:reset": "npm run db:migrate:undo && npm run db:migrate && npm run db:seed"
   },
   "keywords": [],
   "author": "",
