@@ -7,9 +7,11 @@ import { useCreateCheckoutSessionMutation } from '../store/features/payment/paym
 import { loadStripe } from '@stripe/stripe-js';
 import { useAuth } from '../store/authContext';
 import { useNavigate } from 'react-router-dom';
+import { getApiBaseUrl } from '../utils/socketEnv';
 
 // Stripe Elements configuration
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+const API_BASE_URL = getApiBaseUrl();
 
 
 
@@ -71,7 +73,7 @@ const BookingFlow = ({ car, onClose, onComplete, userId }) => {
   const checkCarAvailability = async (carId, startDate, endDate) => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/cars/available?startDate=${startDate}&endDate=${endDate}`
+        `${API_BASE_URL}/cars/available?startDate=${startDate}&endDate=${endDate}`
       );
       
       if (!response.ok) {

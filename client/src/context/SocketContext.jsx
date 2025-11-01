@@ -1,22 +1,16 @@
 import React, { createContext, useContext, useEffect, useMemo } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from '../store/authContext';
+import { getSocketBaseUrl } from '../utils/socketEnv';
 
 const SocketContext = createContext(null);
-
-const buildSocketUrl = () => {
-  const explicit = import.meta.env.VITE_SOCKET_URL;
-  if (explicit) return explicit;
-  const apiBase = import.meta.env.VITE_API_BASE_URL || '';
-  return apiBase.replace(/\/api\/?$/, '');
-};
 
 export const SocketProvider = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
 
   const socket = useMemo(() => {
     try {
-      const url = buildSocketUrl();
+      const url = getSocketBaseUrl();
       return io(url, {
         autoConnect: false,
         transports: ['websocket', 'polling'],

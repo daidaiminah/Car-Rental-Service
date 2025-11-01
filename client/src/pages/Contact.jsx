@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaClock, FaFacebook, FaTwitter, FaInstagram, FaLinkedin } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import Hero from '../components/common/Hero';
+import { getApiBaseUrl } from '../utils/env';
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -29,7 +30,7 @@ const Contact = () => {
     setIsSubmitting(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/contact`,
+        `${getApiBaseUrl()}/contact`,
         {
           method: 'POST',
           headers: {

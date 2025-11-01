@@ -20,20 +20,22 @@ import {
 } from '../store/features/users/usersApiSlice';
 import OwnerDashboard from '../components/OwnerDashboard';
 import RenterDashboard from '../components/RenterDashboard';
+import { getApiBaseUrl } from '../utils/env';
 
 const FALLBACK_AVATAR =
   'https://via.placeholder.com/160?text=Profile';
 
 const exposedFields = ['name', 'phone', 'address', 'city', 'country'];
 
+const API_BASE_URL = getApiBaseUrl();
+const API_ROOT_URL = API_BASE_URL.replace(/\/api$/, '');
+
 const normaliseImagePath = (raw) => {
   if (!raw) return FALLBACK_AVATAR;
   if (raw.startsWith('data:') || raw.startsWith('http')) return raw;
 
-  const apiBase = import.meta.env.VITE_API_BASE_URL || '';
-  const rootUrl = apiBase.replace(/\/api\/?$/, '');
   const normalisedPath = raw.startsWith('/') ? raw : `/${raw}`;
-  return `${rootUrl}${normalisedPath}`;
+  return `${API_ROOT_URL}${normalisedPath}`;
 };
 
 const Profile = () => {

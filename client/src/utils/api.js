@@ -1,9 +1,10 @@
 import axios from 'axios';
+import { getApiBaseUrl } from './socketEnv';
 import { getAuthToken } from './auth';
 
 // Create axios instance with base URL and headers
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api',
+  baseURL: getApiBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },

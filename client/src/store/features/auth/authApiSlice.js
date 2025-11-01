@@ -1,10 +1,11 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { getApiBaseUrl } from '../../../utils/socketEnv';
 
 // Create the auth API slice
 export const authApiSlice = createApi({
   reducerPath: 'authApi',
   baseQuery: fetchBaseQuery({ 
-    baseUrl: import.meta.env.VITE_API_BASE_URL,
+    baseUrl: getApiBaseUrl(),
     prepareHeaders: (headers, { getState }) => {
       // Get token from localStorage
       const token = localStorage.getItem('token');

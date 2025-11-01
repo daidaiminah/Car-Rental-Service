@@ -1,9 +1,10 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { getApiBaseUrl } from '../../../utils/socketEnv';
 
 export const notificationsApiSlice = createApi({
   reducerPath: 'notificationsApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_API_BASE_URL,
+    baseUrl: getApiBaseUrl(),
     prepareHeaders: (headers, { getState }) => {
       const token = getState()?.auth?.token || localStorage.getItem('token');
       if (token) {
