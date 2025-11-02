@@ -4,17 +4,34 @@ import config from '../config/config.js';
 const env = process.env.NODE_ENV || 'production';
 const envConfig = config[env];
 
-const sequelize = new Sequelize(
-  envConfig.database,
-  envConfig.username, 
-  envConfig.password,
-  {
-    ...envConfig,
-    define: {
-      underscored: true,
-    },
-  },
-);
+const {
+  use_env_variable: envVariableKey,
+  database,
+  username,
+  password,
+  ...restConfig
+} = envConfig;
+
+const buildOptions = () => ({
+  ...restConfig,
+  define: {
+    ...(restConfig.define || {}),
+    timestamps: true
+  }
+});
+
+let sequelize;
+
+if (envVariableKey) {
+  const connectionUri =
+    process.env[envVariableKey] ||
+    process.env.DATABASE_URL ||
+    process.env.RENDER_DATABASE_URL;
+
+  sequelize = new Sequelize(connectionUri, buildOptions());
+} else {
+  sequelize = new Sequelize(database, username, password, buildOptions());
+}
 
 export const ensureRoleEnumValues = async () => {
   await sequelize.query(`
