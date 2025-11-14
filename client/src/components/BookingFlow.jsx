@@ -573,7 +573,7 @@ const BookingFlow = ({ car, onClose, onComplete, userId }) => {
 
   return (
     <div className="fixed inset-0 z-30 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-y-auto max-h-[90vh]">
+      <div className="bg-white rounded-lg w-full max-w-2xl overflow-y-auto max-h-[90vh]">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold">Complete Your Booking</h2>

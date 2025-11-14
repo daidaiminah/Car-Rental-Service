@@ -18,14 +18,14 @@ import NotificationBell from '../components/NotificationBell.jsx';
 
 const StatCard = ({ title, value, subtitle, icon: Icon, accent = 'blue' }) => {
   const accentMap = {
-    blue: 'bg-blue-100 text-blue-600',
-    green: 'bg-green-100 text-green-600',
+    blue: 'bg-orange-100 text-orange-600',
+    green: 'bg-orange-100 text-orange-600',
     orange: 'bg-orange-100 text-orange-600',
-    pink: 'bg-pink-100 text-pink-600',
+    pink: 'bg-orange-100 text-orange-600',
   };
 
   return (
-    <article className="flex items-center justify-between rounded-lg bg-white p-5 shadow-sm">
+    <article className="flex items-center justify-between rounded-lg bg-white p-5">
       <div>
         <p className="text-sm font-medium text-gray-500">{title}</p>
         <p className="mt-1 text-2xl font-bold text-gray-900">{value}</p>
@@ -201,7 +201,7 @@ const RenterDashboard = () => {
         />
       </section>
 
-      <section className="rounded-lg bg-white p-6 shadow-sm">
+      <section className="rounded-lg bg-white p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">
             Upcoming Reservations
@@ -272,7 +272,7 @@ const RenterDashboard = () => {
         )}
       </section>
 
-      <section className="rounded-lg bg-white p-6 shadow-sm">
+      <section className="rounded-lg bg-white p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">
             Recommended Cars

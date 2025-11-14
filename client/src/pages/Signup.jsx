@@ -3,10 +3,12 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { FiUser, FiMail, FiLock, FiArrowRight, FiEye, FiEyeOff } from 'react-icons/fi';
 import { FaCar } from 'react-icons/fa';
+import { FcGoogle } from 'react-icons/fc';
 import { useSignupMutation } from '../store/features/auth/authApiSlice';
 import { setCredentials } from '../store/features/auth/authSlice';
 import { toast } from 'react-toastify';
 import Title from '../components/Title';
+import { getApiBaseUrl } from '../utils/socketEnv';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -57,6 +59,14 @@ const Signup = () => {
       ...prev,
       role: type === 'rent' ? 'customer' : 'owner'
     }));
+  };
+
+  const handleGoogleSignIn = () => {
+    if (typeof window === 'undefined') return;
+    const apiBase = getApiBaseUrl();
+    const callbackUrl = `${window.location.origin}/auth/callback`;
+    const authUrl = `${apiBase}/auth/google?redirect=${encodeURIComponent(callbackUrl)}`;
+    window.location.href = authUrl;
   };
 
   const handleSubmit = async (e) => {
@@ -168,7 +178,21 @@ const Signup = () => {
           </div>
         )}
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-md py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <FcGoogle className="h-5 w-5" />
+            Sign up with Google
+          </button>
+          <p className="text-xs text-center text-gray-500">
+            Use your Google account to create a profile instantly.
+          </p>
+        </div>
+
+        <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
           <div className="mb-6">
             <p className="text-center mb-4 font-medium">What are you Register For</p>
             <div className="grid grid-cols-2 gap-4">

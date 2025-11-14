@@ -35,6 +35,14 @@ export default (sequelize, DataTypes) => {
         profileImage: {
           type: DataTypes.STRING,
         },
+        authProvider: {
+          type: DataTypes.STRING,
+          allowNull: true,
+        },
+        authProviderId: {
+          type: DataTypes.STRING,
+          allowNull: true,
+        },
         isVerified: {
           type: DataTypes.BOOLEAN,
           defaultValue: false,

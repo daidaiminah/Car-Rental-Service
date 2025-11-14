@@ -125,7 +125,7 @@ const Cars = () => {
           </div>
           
           {/* Search Bar */}
-          <div className="bg-white p-4 rounded-lg shadow-lg max-w-3xl mx-auto flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+          <div className="bg-white p-4 rounded-lg max-w-3xl mx-auto flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
             <div className="flex-grow relative">
               <input
                 type="text"
@@ -212,7 +212,7 @@ const Cars = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredCars.length > 0 ? (
               filteredCars.map((car) => (
-                <div key={car.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
+                <div key={car.id} className="bg-white rounded-lg overflow-hidden border border-gray-200">
                   <div className="relative">
                     <img 
                       src={car.imageUrl || `https://via.placeholder.com/400x240?text=${car.make}+${car.model}`} 
@@ -222,7 +222,7 @@ const Cars = () => {
                     <div className="absolute top-3 left-3">
                       <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-md">Available</span>
                     </div>
-                    <button className="absolute top-3 right-3 bg-white p-1.5 rounded-full shadow-md hover:bg-gray-100">
+                    <button className="absolute top-3 right-3 bg-white p-1.5 rounded-full hover:bg-gray-100">
                       <FiHeart className="text-gray-500" />
                     </button>
                   </div>

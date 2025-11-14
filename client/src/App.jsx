@@ -20,6 +20,7 @@ import Rentals from './pages/Rentals';
 import RentalDetails from './pages/RentalDetails';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import AuthCallback from './pages/AuthCallback';
 import NotFound from './pages/NotFound';
 import ScrollToTop from './components/ScrollToTop';
 
@@ -214,6 +215,7 @@ function AppContent() {
       
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
       
       {/* 404 - Keep at the end */}
       <Route path="*" element={<NotFound />} />

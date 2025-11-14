@@ -265,7 +265,7 @@ const Profile = () => {
         My Profile
       </h1>
 
-      <div className="overflow-hidden rounded-lg bg-white shadow-md">
+      <div className="overflow-hidden rounded-lg bg-white">
         <div className="flex flex-col items-center justify-between bg-secondary-dark p-6 md:flex-row">
           <div className="flex flex-col items-center md:flex-row">
             <div className="mb-4 h-24 w-24 overflow-hidden rounded-full bg-gray-200 md:mb-0 md:mr-6">

@@ -1,7 +1,7 @@
 import React from 'react';
 
 const TeamMember = ({ name, role, image, bio }) => (
-  <div className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
+  <div className="bg-white rounded-xl overflow-hidden transition-all duration-300 transform hover:-translate-y-2">
     <div className="relative group">
       <img 
         src={image} 

@@ -42,7 +42,7 @@ const ReviewForm = ({ carId, rentalId, onReviewSubmitted }) => {
   };
 
   return (
-    <div className="mt-8 p-6 bg-white rounded-lg shadow-sm">
+    <div className="mt-8 p-6 bg-white rounded-lg">
       <h3 className="text-lg font-medium text-gray-900 mb-4">Write a Review</h3>
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
@@ -82,7 +82,7 @@ const ReviewForm = ({ carId, rentalId, onReviewSubmitted }) => {
           <textarea
             id="comment"
             rows="4"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Share your experience with this car..."
             value={comment}
             onChange={(e) => setComment(e.target.value)}
@@ -93,7 +93,7 @@ const ReviewForm = ({ carId, rentalId, onReviewSubmitted }) => {
           <button
             type="submit"
             disabled={isLoading || !rentalId}
-            className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
+            className={`inline-flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
               isLoading || !rentalId
                 ? 'bg-blue-400 cursor-not-allowed'
                 : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'

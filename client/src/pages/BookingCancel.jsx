@@ -21,7 +21,7 @@ const BookingCancel = () => {
   
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md text-center">
+      <div className="max-w-md w-full bg-white p-8 rounded-lg text-center">
         <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-yellow-100">
           <FiAlertCircle className="h-8 w-8 text-yellow-600" />
         </div>

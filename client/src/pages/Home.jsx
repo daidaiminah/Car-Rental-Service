@@ -3,8 +3,20 @@ import { Link } from 'react-router-dom';
 import { FiMapPin, FiCreditCard, FiDollarSign, FiSmartphone, FiCalendar, FiClock, FiSearch, FiStar, FiChevronRight, FiShield } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
-import { useMemo, useCallback } from 'react';
+import { getApiBaseUrl } from '../utils/socketEnv';
 
+const LOCATION_OPTIONS = [
+  { value: 'monrovia', label: 'Monrovia' },
+  { value: 'gbarnga', label: 'Gbarnga' },
+  { value: 'ganta', label: 'Ganta' },
+  { value: 'buchanan', label: 'Buchanan' },
+  { value: 'kakata', label: 'Kakata' },
+];
+
+const LOCATION_LABEL_MAP = LOCATION_OPTIONS.reduce((acc, option) => {
+  acc[option.value] = option.label;
+  return acc;
+}, {});
 
 // Components
 import Title from '../components/Title';
@@ -42,6 +54,86 @@ const Home = () => {
   const [location, setLocation] = useState('');
   const [pickupDate, setPickupDate] = useState('');
   const [returnDate, setReturnDate] = useState('');
+  const [availableCars, setAvailableCars] = useState(null);
+  const [isHeroSearching, setIsHeroSearching] = useState(false);
+  const [heroSearchMeta, setHeroSearchMeta] = useState(null);
+  const apiBaseUrl = getApiBaseUrl();
+
+  const formatDisplayDate = (value) => {
+    if (!value) return '';
+    return new Date(value).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const handleHeroSearch = async () => {
+    if (!location) {
+      toast.error('Please choose a pick-up location.');
+      return;
+    }
+    if (!pickupDate || !returnDate) {
+      toast.error('Please select both pick-up and return dates.');
+      return;
+    }
+    if (new Date(returnDate) < new Date(pickupDate)) {
+      toast.error('Return date must be after the pick-up date.');
+      return;
+    }
+
+    setIsHeroSearching(true);
+    try {
+      const params = new URLSearchParams({
+        startDate: pickupDate,
+        endDate: returnDate
+      });
+      const response = await fetch(`${apiBaseUrl}/cars/available?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Unable to load available cars');
+      }
+      const payload = await response.json();
+      let cars = [];
+      if (Array.isArray(payload?.data)) {
+        cars = payload.data;
+      } else if (Array.isArray(payload)) {
+        cars = payload;
+      }
+
+      if (location) {
+        const normalizedLocation = location.toLowerCase();
+        cars = cars.filter((car) =>
+          (car.location || '').toLowerCase().includes(normalizedLocation)
+        );
+      }
+
+      setAvailableCars(cars);
+      setHeroSearchMeta({
+        location,
+        pickupDate,
+        returnDate
+      });
+
+      if (!cars.length) {
+        toast.info('No cars match your search. Try different dates or a nearby city.');
+      } else {
+        toast.success(`Found ${cars.length} car${cars.length === 1 ? '' : 's'} for your dates.`);
+      }
+    } catch (error) {
+      console.error('Hero search failed:', error);
+      toast.error('Unable to search for cars right now. Please try again.');
+    } finally {
+      setIsHeroSearching(false);
+    }
+  };
+
+  const handleResetHeroSearch = () => {
+    setAvailableCars(null);
+    setHeroSearchMeta(null);
+    setLocation('');
+    setPickupDate('');
+    setReturnDate('');
+  };
 
   // Fetch featured cars using the new car service
   const { 
@@ -59,41 +151,42 @@ const Home = () => {
     }
   }, [isError, error]);
 
-  // Handle filter changes
-  const handleFilterChange = (newFilters) => {
-    setFilters(prevFilters => ({
-      ...prevFilters,
-      ...newFilters
-    }));
-  };
-
-  // Handle search form submission
-  const handleSearch = (e) => {
-    e.preventDefault();
-    // Here you would typically trigger a new search with the current filters
-    // For now, we'll just show a toast notification
-    toast.info('Search functionality will be implemented soon!');
-  };
-
-  console.log(`Debugging car: ${JSON.stringify(featuredCars, null, 2)}`);
-
+  const baseCars = availableCars ?? featuredCars;
 
   // Filter cars based on local filters
-  const filteredCars = featuredCars.filter(car => {
+  const filteredCars = baseCars.filter(car => {
     const searchTermLower = (searchTerm || '').toLowerCase();
     const matchesSearch = 
       !searchTerm || 
       (car.make?.toLowerCase().includes(searchTermLower) ||
        car.model?.toLowerCase().includes(searchTermLower));
-    
+    const dailyRate = Number(car.rentalPricePerDay ?? car.pricePerDay ?? 0);
+    const normalizedHeroLocation = heroSearchMeta?.location?.toLowerCase();
+    const matchesLocation = !normalizedHeroLocation
+      ? true
+      : (car.location || '').toLowerCase().includes(normalizedHeroLocation);
+
     const matchesFilters = 
       (!filters.type || car.type === filters.type) &&
       (!filters.transmission || car.transmission === filters.transmission) &&
-      (!filters.minPrice || car.pricePerDay >= parseFloat(filters.minPrice)) &&
-      (!filters.maxPrice || car.pricePerDay <= parseFloat(filters.maxPrice));
+      (!filters.minPrice || dailyRate >= parseFloat(filters.minPrice)) &&
+      (!filters.maxPrice || dailyRate <= parseFloat(filters.maxPrice));
     
-    return matchesSearch && matchesFilters;
+    return matchesSearch && matchesFilters && matchesLocation;
   });
+
+  const heroLocationLabel = heroSearchMeta?.location
+    ? LOCATION_LABEL_MAP[heroSearchMeta.location] || heroSearchMeta.location
+    : '';
+
+  const carsAvailableLabel = heroSearchMeta
+    ? `${filteredCars.length} car${filteredCars.length === 1 ? '' : 's'} available in ${heroLocationLabel || 'your selected city'}`
+    : `${filteredCars.length} ${filteredCars.length === 1 ? 'car' : 'cars'} available`;
+
+  const heroDateRangeLabel = heroSearchMeta
+    ? `${formatDisplayDate(heroSearchMeta.pickupDate)} – ${formatDisplayDate(heroSearchMeta.returnDate)}`
+    : '';
+  const carsSectionTitle = heroSearchMeta ? 'Available Cars' : 'Featured Cars';
 
   // Handle filter input changes
   const handleInputFilterChange = (e) => {
@@ -103,7 +196,6 @@ const Home = () => {
       [name]: value
     };
     setFilters(newFilters);
-    dispatch(setReduxFilters(newFilters));
   };
 
   // Handle search term changes
@@ -111,8 +203,16 @@ const Home = () => {
     const value = e.target.value;
     // Update local state for controlled input
     setSearchTerm(value);
-    // Update Redux state for filtering and persistence
-    dispatch(setReduxFilters({ searchTerm: value }));
+  };
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setFilters({
+      type: '',
+      minPrice: '',
+      maxPrice: '',
+      transmission: ''
+    });
   };
 
   // Show loading spinner while fetching data
@@ -208,11 +308,11 @@ const Home = () => {
                         onChange={(e) => setLocation(e.target.value)}
                       >
                         <option value="">Select a city</option>
-                        <option value="monrovia">Monrovia</option>
-                        <option value="gbarnga">Gbarnga</option>
-                        <option value="ganta">Ganta</option>
-                        <option value="buchanan">Buchanan</option>
-                        <option value="kakata">Kakata</option>
+                        {LOCATION_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -250,10 +350,24 @@ const Home = () => {
                   <div className="flex items-end">
                     <button
                       type="button"
-                      className="w-full bg-primary hover:bg-orange-700 text-white py-2 px-4 rounded-md flex items-center justify-center transition-colors"
+                      onClick={handleHeroSearch}
+                      disabled={isHeroSearching}
+                      className="w-full bg-primary hover:bg-orange-700 disabled:opacity-70 disabled:cursor-not-allowed text-white py-2 px-4 rounded-md flex items-center justify-center transition-colors"
                     >
-                      <FiSearch className="mr-2" />
-                      Find My Car
+                      {isHeroSearching ? (
+                        <>
+                          <svg className="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                          </svg>
+                          Searching...
+                        </>
+                      ) : (
+                        <>
+                          <FiSearch className="mr-2" />
+                          Find My Car
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -616,19 +730,7 @@ const Home = () => {
             
             <div className="flex items-end">
               <button
-                onClick={() => {
-                  // Clear both search term and filters
-                  setSearchTerm('');
-                  const emptyFilters = {
-                    type: '',
-                    minPrice: '',
-                    maxPrice: '',
-                    transmission: '',
-                    searchTerm: ''
-                  };
-                  setFilters(emptyFilters);
-                  dispatch(setReduxFilters(emptyFilters));
-                }}
+                onClick={handleClearFilters}
                 className="w-full bg-primary hover:bg-orange-700 text-white font-medium py-3 px-4 rounded-lg transition-colors shadow-sm flex items-center justify-center"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -642,10 +744,22 @@ const Home = () => {
 
         {/* Cars Grid */}
         <div className="mb-12">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">Featured Cars</h2>
-            <div className="text-gray-600">
-              {filteredCars.length} {filteredCars.length === 1 ? 'car' : 'cars'} available
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-2">
+            <h2 className="text-2xl font-bold text-gray-800">{carsSectionTitle}</h2>
+            <div className="text-gray-600 text-sm md:text-base">
+              <div>{carsAvailableLabel}</div>
+              {heroSearchMeta && (
+                <div className="flex items-center gap-3 text-xs md:text-sm text-gray-500">
+                  <span>{heroDateRangeLabel}</span>
+                  <button
+                    type="button"
+                    onClick={handleResetHeroSearch}
+                    className="text-primary hover:text-primary-dark font-medium"
+                  >
+                    Reset search
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 

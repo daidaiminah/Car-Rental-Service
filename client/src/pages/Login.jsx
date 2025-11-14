@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { FiLogIn, FiUser, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
 import { FaCar } from 'react-icons/fa';
+import { FcGoogle } from 'react-icons/fc';
 import { useLoginMutation } from "../store/features/auth/authApiSlice";
 import { setCredentials } from '../store/features/auth/authSlice';
 import { toast } from 'react-toastify';
 import Title from '../components/Title';
+import { getApiBaseUrl } from '../utils/socketEnv';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -37,6 +39,14 @@ const Login = () => {
 
   const handleUserTypeSelect = (type) => {
     setUserType(type);
+  };
+
+  const handleGoogleSignIn = () => {
+    if (typeof window === 'undefined') return;
+    const apiBase = getApiBaseUrl();
+    const callbackUrl = `${window.location.origin}/auth/callback`;
+    const authUrl = `${apiBase}/auth/google?redirect=${encodeURIComponent(callbackUrl)}`;
+    window.location.href = authUrl;
   };
 
   const handleSubmit = async (e) => {
@@ -151,7 +161,21 @@ const Login = () => {
           </div>
         )}
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-md py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <FcGoogle className="h-5 w-5" />
+            Continue with Google
+          </button>
+          <p className="text-xs text-center text-gray-500">
+            We will redirect you to Google to securely authenticate.
+          </p>
+        </div>
+
+        <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
           <div className="mb-6">
             <p className="text-center mb-4 font-medium">What are you login for?</p>
             <div className="grid grid-cols-2 gap-4">
@@ -268,4 +292,3 @@ const Login = () => {
 };
 
 export default Login;
-

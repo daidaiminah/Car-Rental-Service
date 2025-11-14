@@ -11,6 +11,7 @@ import userRoute from "./routers/userRoute.js";
 import reviewRoutes from "./routers/reviewRoutes.js";
 import notificationRoutes from "./routers/notificationRoutes.js";
 import contactRoutes from "./routers/contactRoutes.js";
+import searchRoutes from "./routers/searchRoute.js";
 import cors from 'cors';
 import paymentRoutes from "./routers/paymentRoutes.js";
 import wishlistRoutes from "./routers/wishlistRoutes.js";
@@ -59,6 +60,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/search", searchRoutes);
 
 
 // Determine port - Render and other hosts inject one via environment

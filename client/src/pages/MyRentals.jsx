@@ -128,7 +128,7 @@ const MyRentals = () => {
       </div>
 
       {filteredRentals.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-md p-6 text-center">
+        <div className="bg-white rounded-lg p-6 text-center">
           <FaCalendarAlt className="mx-auto text-5xl text-gray-300 mb-4" />
           <h2 className="text-xl font-semibold text-secondary-dark mb-2">
             {filter === 'all' 
@@ -137,7 +137,7 @@ const MyRentals = () => {
           </h2>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="bg-white rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">

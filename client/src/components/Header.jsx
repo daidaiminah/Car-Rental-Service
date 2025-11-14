@@ -4,6 +4,7 @@ import { useAuth } from '../store/authContext';
 import { FiMenu, FiX, FiSearch, FiUser, FiLogOut, FiChevronDown, FiMapPin, FiPhone, FiMail } from 'react-icons/fi';
 import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin } from 'react-icons/fa';
 import { getNavigationConfig } from '../config/navigation';
+import { getApiBaseUrl } from '../utils/socketEnv';
 import Logo from '../assets/images/Comfort/comfort_logo.png'
 //import { TbGridDots } from "react-icons/tb";
 
@@ -224,50 +225,173 @@ const Header = ({ onMenuClick }) => {
   };
 
   // Search functionality
+  const initialSearchResults = { cars: [], pages: [], support: [] };
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
+  const [searchResults, setSearchResults] = useState(initialSearchResults);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const abortControllerRef = useRef(null);
+  const debounceTimerRef = useRef(null);
 
-  // Mock search function - replace with actual API call
+  const hasSearchResults = Object.values(searchResults).some(
+    (items) => items && items.length > 0
+  );
+
+  const resetSearchState = () => {
+    setSearchResults(initialSearchResults);
+    setShowSearchResults(false);
+    setIsSearching(false);
+  };
+
+  const executeSearch = async (query) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    setIsSearching(true);
+    try {
+      const endpoint = `${getApiBaseUrl()}/search?q=${encodeURIComponent(query)}&limit=5`;
+      const response = await fetch(endpoint, { signal: controller.signal });
+      if (!response.ok) {
+        throw new Error('Search request failed');
+      }
+      const data = await response.json();
+      setSearchResults({
+        cars: data.results?.cars || [],
+        pages: data.results?.pages || [],
+        support: data.results?.support || []
+      });
+      setShowSearchResults(true);
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error('Search error:', error);
+        resetSearchState();
+      }
+    } finally {
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
+      setIsSearching(false);
+    }
+  };
+
   const handleSearch = (query) => {
     setSearchQuery(query);
-    if (query.length > 2) {
-      // Simulate API call with timeout
-      setTimeout(() => {
-        const mockResults = [
-          { id: 1, name: 'Toyota Camry', type: 'Sedan', price: '$50/day' },
-          { id: 2, name: 'Honda Accord', type: 'Sedan', price: '$55/day' },
-          { id: 3, name: 'BMW X5', type: 'SUV', price: '$90/day' },
-        ];
-        setSearchResults(mockResults.filter(item => 
-          item.name.toLowerCase().includes(query.toLowerCase()) ||
-          item.type.toLowerCase().includes(query.toLowerCase())
-        ));
-        setShowSearchResults(true);
-      }, 300);
-    } else {
-      setSearchResults([]);
-      setShowSearchResults(false);
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
     }
+    if (!query || query.trim().length < 2) {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      resetSearchState();
+      return;
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      executeSearch(query.trim());
+    }, 250);
   };
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
-      setShowSearchResults(false);
+    if (searchQuery.trim().length < 2) {
+      return;
+    }
+    if (!hasSearchResults) {
+      executeSearch(searchQuery.trim());
+    } else {
+      setShowSearchResults(true);
     }
   };
 
+  const handleResultClick = () => {
+    setShowSearchResults(false);
+    setIsSearchOpen(false);
+  };
+
+  const renderResultSection = (label, items) => {
+    if (!items || items.length === 0) return null;
+    return (
+      <div className="py-2">
+        <p className="px-4 pb-1 text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</p>
+        {items.map((item) => (
+          <Link
+            key={`${label}-${item.id}`}
+            to={item.link}
+            className="flex items-start justify-between gap-3 px-4 py-2 hover:bg-gray-50 transition-colors"
+            onClick={handleResultClick}
+          >
+            <div>
+              <p className="text-sm font-medium text-gray-900">{item.title}</p>
+              {item.subtitle && <p className="text-xs text-gray-500">{item.subtitle}</p>}
+              {item.description && <p className="text-xs text-gray-500">{item.description}</p>}
+              {item.badges && item.badges.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {item.badges.map((badge) => (
+                    <span key={badge} className="text-[10px] uppercase tracking-wide text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                      {badge}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            {item.meta && <span className="text-sm font-semibold text-primary">{item.meta}</span>}
+          </Link>
+        ))}
+      </div>
+    );
+  };
+
+  const renderSearchResults = () => {
+    if (isSearching) {
+      return (
+        <div className="px-4 py-6 text-sm text-gray-500">
+          Searching…
+        </div>
+      );
+    }
+    if (!hasSearchResults) {
+      return (
+        <div className="px-4 py-6 text-sm text-gray-500">
+          {searchQuery.length < 2
+            ? 'Start typing to discover cars, guides, and support resources.'
+            : 'No matches found. Try adjusting your keywords.'}
+        </div>
+      );
+    }
+    return (
+      <>
+        {renderResultSection('Cars', searchResults.cars)}
+        {renderResultSection('Guides & Pages', searchResults.pages)}
+        {renderResultSection('Help & Support', searchResults.support)}
+      </>
+    );
+  };
+
   // Close search results when clicking outside
+useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (searchRef.current && !searchRef.current.contains(event.target)) {
+      setShowSearchResults(false);
+    }
+  };
+  document.addEventListener('mousedown', handleClickOutside);
+  return () => document.removeEventListener('mousedown', handleClickOutside);
+}, []);
+
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (searchRef.current && !searchRef.current.contains(event.target)) {
-        setShowSearchResults(false);
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   return (
@@ -339,19 +463,9 @@ const Header = ({ onMenuClick }) => {
               </form>
               
               {/* Search results dropdown */}
-              {showSearchResults && searchResults.length > 0 && (
-                <div className="absolute z-10 mt-1 w-full bg-white rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto max-h-60">
-                  {searchResults.map((item) => (
-                    <Link
-                      key={item.id}
-                      to={`/cars?search=${encodeURIComponent(item.name)}`}
-                      className="flex justify-between items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={() => setShowSearchResults(false)}
-                    >
-                      <span>{item.name} <span className="text-gray-500 text-xs">({item.type})</span></span>
-                      <span className="font-medium text-primary">{item.price}</span>
-                    </Link>
-                  ))}
+              {showSearchResults && (
+                <div className="absolute z-10 mt-1 w-full bg-white rounded-md text-base ring-1 ring-black ring-opacity-5 overflow-auto max-h-72 shadow-lg">
+                  {renderSearchResults()}
                 </div>
               )}
             </div>
@@ -481,22 +595,9 @@ const Header = ({ onMenuClick }) => {
                   onChange={(e) => handleSearch(e.target.value)}
                 />
               </div>
-              {showSearchResults && searchResults.length > 0 && (
-                <div className="mt-1 bg-white shadow-lg rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto max-h-60">
-                  {searchResults.map((item) => (
-                    <Link
-                      key={item.id}
-                      to={`/cars?search=${encodeURIComponent(item.name)}`}
-                      className="flex justify-between items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={() => {
-                        setShowSearchResults(false);
-                        setIsSearchOpen(false);
-                      }}
-                    >
-                      <span>{item.name} <span className="text-gray-500 text-xs">({item.type})</span></span>
-                      <span className="font-medium text-primary">{item.price}</span>
-                    </Link>
-                  ))}
+              {showSearchResults && (
+                <div className="mt-1 bg-white shadow-lg rounded-md text-base ring-1 ring-black ring-opacity-5 overflow-auto max-h-72">
+                  {renderSearchResults()}
                 </div>
               )}
             </div>

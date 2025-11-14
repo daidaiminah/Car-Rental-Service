@@ -82,7 +82,7 @@ const PrivacyPolicy = () => {
           </p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-8 mb-8">
+        <div className="bg-white rounded-lg p-8 mb-8">
           <p className="mb-6 text-secondary-light">
             At Whip In Town, we are committed to protecting your privacy. This Privacy Policy explains how we collect, 
             use, disclose, and safeguard your information when you use our car rental services.
@@ -107,7 +107,7 @@ const PrivacyPolicy = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-8">
+        <div className="bg-white rounded-lg p-8">
           <h2 className="text-2xl font-semibold text-secondary-dark mb-4">Contact Us</h2>
           <p className="text-secondary-light">
             If you have any questions about this Privacy Policy, please contact us at:

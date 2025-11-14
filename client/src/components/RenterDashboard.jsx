@@ -74,7 +74,7 @@ const RenterDashboard = ({ userId }) => {
 
   if (!rentals.length) {
     return (
-      <div className="rounded-lg bg-white p-6 shadow">
+      <div className="rounded-lg bg-white p-6">
         <h3 className="mb-4 text-2xl font-bold text-secondary-dark">My Rentals</h3>
         <p className="text-sm text-gray-600">
           You haven&apos;t booked any cars yet. Head over to browse cars and start your first rental!
@@ -84,7 +84,7 @@ const RenterDashboard = ({ userId }) => {
   }
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow">
+    <div className="rounded-lg bg-white p-6">
       <h3 className="mb-4 text-2xl font-bold text-secondary-dark">My Rentals</h3>
       <div className="space-y-4">
         {rentals.map((rental) => {

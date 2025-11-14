@@ -160,8 +160,8 @@ const BookingSuccess = () => {
   if (isError || (rentalId && !rental)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-        <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md text-center">
-          <div className="text-yellow-500 text-6xl mb-4 flex justify-center">
+        <div className="max-w-md w-full bg-white p-8 rounded-lg text-center">
+          <div className="text-[#faeb1c] text-6xl mb-4 flex justify-center">
             <FiAlertCircle className="h-16 w-16" />
           </div>
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Booking Details Not Found</h1>
@@ -239,7 +239,7 @@ const BookingSuccess = () => {
         </div>
 
         {/* Booking Summary Card */}
-        <div className="bg-white shadow overflow-hidden rounded-lg mb-8">
+        <div className="bg-white overflow-hidden rounded-lg mb-8">
           <div className="px-6 py-5 border-b border-gray-200">
             <h2 className="text-lg font-medium text-gray-900">Booking Summary</h2>
           </div>
@@ -347,7 +347,7 @@ const BookingSuccess = () => {
         </div>
         
         {/* Next Steps */}
-        <div className="bg-white shadow overflow-hidden rounded-lg">
+        <div className="bg-white overflow-hidden rounded-lg">
           <div className="px-6 py-5 border-b border-gray-200">
             <h2 className="text-lg font-medium text-gray-900">What's Next?</h2>
           </div>

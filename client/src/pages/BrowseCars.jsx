@@ -93,7 +93,7 @@ const BrowseCars = () => {
         <h1 className="text-2xl font-bold text-secondary-dark mb-6">Browse Available Cars</h1>
         
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div className="bg-white rounded-lg p-6 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div>
               <label htmlFor="make" className="block text-sm font-medium text-secondary-dark mb-1">Make</label>
@@ -196,7 +196,7 @@ const BrowseCars = () => {
         
         {/* Cars Grid */}
         {cars.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-md p-6 text-center">
+          <div className="bg-white rounded-lg p-6 text-center">
             <FaCar className="mx-auto text-5xl text-gray-300 mb-4" />
             <h2 className="text-xl font-semibold text-secondary-dark mb-2">No Cars Available</h2>
             <p className="text-secondary mb-4">
@@ -212,7 +212,7 @@ const BrowseCars = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {cars.map(car => (
-              <div key={car.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+              <div key={car.id} className="bg-white rounded-lg overflow-hidden">
                 <div className="relative h-48">
                   <img 
                     src={car.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image'} 

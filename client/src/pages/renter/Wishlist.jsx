@@ -72,7 +72,7 @@ const Wishlist = () => {
       </div>
 
       {wishlist.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-8 text-center">
+        <div className="bg-white rounded-lg p-8 text-center">
           <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
             <FiHeart className="text-gray-400 text-2xl" />
           </div>
@@ -84,7 +84,7 @@ const Wishlist = () => {
           </p>
           <Link
             to="/cars"
-            className="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+            className="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary/70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
           >
             Browse Cars
           </Link>
@@ -108,7 +108,7 @@ const Wishlist = () => {
             return (
               <div
                 key={item.id}
-                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
+                className="bg-white rounded-lg overflow-hidden duration-300"
               >
                 <div className="relative">
                   <img
@@ -124,7 +124,7 @@ const Wishlist = () => {
                   <button
                     onClick={() => handleRemove(car.id)}
                     disabled={isRemoving || !car.id}
-                    className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md hover:bg-gray-100 focus:outline-none disabled:opacity-60"
+                    className="absolute top-3 right-3 p-2 bg-white rounded-full hover:bg-gray-100 focus:outline-none disabled:opacity-60"
                     aria-label="Remove from wishlist"
                   >
                     <FiHeart className="text-red-500 fill-current" />

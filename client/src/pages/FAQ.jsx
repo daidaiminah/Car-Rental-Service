@@ -99,7 +99,7 @@ const FAQ = () => {
 
         <div className="space-y-8">
           {faqCategories.map((category, categoryIndex) => (
-            <div key={category.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div key={category.id} className="bg-white rounded-lg overflow-hidden">
               <div 
                 className="flex items-center justify-between p-6 cursor-pointer bg-gray-50"
                 onClick={() => toggleAccordion(categoryIndex)}
@@ -129,7 +129,7 @@ const FAQ = () => {
           ))}
         </div>
 
-        <div className="mt-12 bg-white rounded-lg shadow-md p-8 text-center">
+        <div className="mt-12 bg-white rounded-lg p-8 text-center">
           <h2 className="text-2xl font-semibold text-secondary-dark mb-4">Still have questions?</h2>
           <p className="text-secondary-light mb-6">
             Our customer support team is available 24/7 to assist you with any additional questions.

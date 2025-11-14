@@ -13,7 +13,7 @@ import { selectCurrentUser, logOut } from "../store/features/auth/authSlice";
 // StatCard component for displaying statistics with icons and trends
 const StatCard = ({ title, value, icon: Icon, color, trend, change, loading = false }) => {
   return (
-    <div className="bg-white rounded-lg shadow p-6 flex items-center justify-between">
+    <div className="bg-white rounded-lg p-6 flex items-center justify-between">
       <div>
         <p className="text-gray-500 text-sm font-medium">{title}</p>
         <h3 className="text-2xl font-bold mt-1">{loading ? '...' : value}</h3>
@@ -143,7 +143,7 @@ const Dashboard = () => {
         </div>
 
         {/* Recent Cars */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-lg overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold text-gray-800">Recent Cars</h2>
@@ -161,7 +161,7 @@ const Dashboard = () => {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {cars.map((car) => (
-                  <div key={car.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+                  <div key={car.id} className="bg-white rounded-lg overflow-hidden">
                     <CarCard car={car} />
                     <div className="p-4 border-t border-gray-100">
                       <Link 

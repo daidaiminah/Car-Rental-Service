@@ -65,7 +65,7 @@ const SafetySupport = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {safetyFeatures.map((feature, index) => (
-              <div key={index} className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+              <div key={index} className="bg-white p-6 rounded-lg">
                 <div className="text-center mb-4">
                   {feature.icon}
                 </div>
@@ -83,7 +83,7 @@ const SafetySupport = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {supportTeam.map((member, index) => (
-              <div key={index} className="bg-white p-6 rounded-lg shadow-md">
+              <div key={index} className="bg-white p-6 rounded-lg">
                 <div className="flex items-center mb-4">
                   <div className="text-primary">
                     {member.icon}
@@ -106,7 +106,7 @@ const SafetySupport = () => {
         </div>
 
         {/* Emergency Procedures */}
-        <div className="bg-white p-8 rounded-lg shadow-md">
+        <div className="bg-white p-8 rounded-lg">
           <h2 className="text-2xl font-semibold text-secondary-dark mb-6">
             In Case of Emergency
           </h2>
@@ -121,7 +121,7 @@ const SafetySupport = () => {
                 <li>Document the scene with photos if possible</li>
               </ol>
             </div>
-            <div className="border-l-4 border-blue-500 pl-4 py-2">
+            <div className="border-l-4 border-[#faeb1c] pl-4 py-2">
               <h3 className="font-semibold text-lg">Vehicle Breakdown</h3>
               <ol className="list-decimal list-inside text-secondary-light space-y-1 mt-2">
                 <li>Move to a safe location if possible</li>

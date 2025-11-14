@@ -125,7 +125,7 @@ const CarDetails = () => {
 
         <div className="grid gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
-            <div className="overflow-hidden rounded-xl bg-white shadow">
+            <div className="overflow-hidden rounded-xl bg-white">
               <div className="relative h-72 w-full bg-gray-100">
                 {car.imageUrl ? (
                   <img
@@ -191,7 +191,7 @@ const CarDetails = () => {
               </div>
             </div>
 
-            <div className="rounded-xl bg-white p-6 shadow">
+            <div className="rounded-xl bg-white p-6">
               <h2 className="text-lg font-semibold text-gray-800">Vehicle details</h2>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div>
@@ -230,7 +230,7 @@ const CarDetails = () => {
             </div>
 
             {car.ownerId && (
-              <div className="rounded-xl bg-white p-6 shadow">
+              <div className="rounded-xl bg-white p-6">
                 <h2 className="text-lg font-semibold text-gray-800">Owner information</h2>
                 <p className="mt-2 text-sm text-gray-600">
                   Owner ID: {car.ownerId}
@@ -243,7 +243,7 @@ const CarDetails = () => {
           </div>
 
           <div className="space-y-6">
-            <div className="rounded-xl bg-white p-6 shadow">
+            <div className="rounded-xl bg-white p-6">
               <h2 className="text-lg font-semibold text-gray-800">Rental history</h2>
               {isLoadingRentals ? (
                 <div className="mt-6 flex items-center justify-center">
@@ -293,7 +293,7 @@ const CarDetails = () => {
               )}
             </div>
 
-            <div className="rounded-xl bg-white p-6 shadow">
+            <div className="rounded-xl bg-white p-6">
               <h2 className="text-lg font-semibold text-gray-800">Need assistance?</h2>
               <p className="mt-2 text-sm text-gray-600">
                 If you have any questions about this vehicle or need help managing rentals, our support

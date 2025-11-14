@@ -84,7 +84,7 @@ const Settings = () => {
             type="text"
             value={profileForm.firstName}
             onChange={(e) => setProfileForm({...profileForm, firstName: e.target.value})}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
+            className="mt-1 block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary"
           />
         </div>
         <div>
@@ -93,7 +93,7 @@ const Settings = () => {
             type="text"
             value={profileForm.lastName}
             onChange={(e) => setProfileForm({...profileForm, lastName: e.target.value})}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
+            className="mt-1 block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary"
           />
         </div>
         <div>
@@ -102,7 +102,7 @@ const Settings = () => {
             type="email"
             value={profileForm.email}
             onChange={(e) => setProfileForm({...profileForm, email: e.target.value})}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
+            className="mt-1 block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary"
           />
         </div>
         <div>
@@ -111,7 +111,7 @@ const Settings = () => {
             type="tel"
             value={profileForm.phone}
             onChange={(e) => setProfileForm({...profileForm, phone: e.target.value})}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
+            className="mt-1 block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary"
           />
         </div>
       </div>
@@ -119,7 +119,7 @@ const Settings = () => {
         <button
           type="submit"
           disabled={isLoading}
-          className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50"
+          className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-primary hover:bg-primary/70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
         >
           {isLoading ? 'Saving...' : 'Save Changes'}
         </button>

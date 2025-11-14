@@ -45,7 +45,7 @@ const RentalCard = ({ rental, isOwner = false, refetch }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden mb-4 border border-gray-200">
+    <div className="bg-white rounded-lg overflow-hidden mb-4 border border-gray-200">
       <div className="p-4">
         <div className="flex justify-between items-start">
           <div className="flex items-center space-x-4">
@@ -78,7 +78,7 @@ const RentalCard = ({ rental, isOwner = false, refetch }) => {
             
             {showActions && isOwner && (
               <div 
-                className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200"
+                className="absolute right-0 mt-2 w-48 bg-white rounded-md z-10 border border-gray-200"
                 onClick={(e) => e.stopPropagation()}
               >
                 {status === 'pending' && (

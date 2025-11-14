@@ -17,7 +17,7 @@ const SearchAndFilter = ({ onSearch, onFilterChange, filters }) => {
   return (
     <div className="mb-8">
       {/* Main Search Bar */}
-      <div className="bg-white rounded-2xl shadow-sm p-1 flex items-center">
+      <div className="bg-white rounded-2xl p-1 flex items-center">
         <div className="flex-1 relative">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <FiSearch className="text-gray-400" />
@@ -45,7 +45,7 @@ const SearchAndFilter = ({ onSearch, onFilterChange, filters }) => {
         
         <button
           onClick={handleSearch}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-colors"
+          className="bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-xl font-medium transition-colors"
         >
           Search
         </button>
@@ -53,7 +53,7 @@ const SearchAndFilter = ({ onSearch, onFilterChange, filters }) => {
 
       {/* Filter Panel */}
       {showFilters && (
-        <div className="mt-4 bg-white rounded-2xl shadow-sm p-6 animate-fadeIn">
+        <div className="mt-4 bg-white rounded-2xl p-6 animate-fadeIn">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold">Filters</h3>
             <button 

@@ -101,7 +101,7 @@ const Payments = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          <div className="bg-white rounded-lg shadow">
+          <div className="bg-white rounded-lg">
             <div className="p-6 border-b border-gray-200 flex justify-between items-center">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Payment Methods</h2>
@@ -156,7 +156,7 @@ const Payments = () => {
             )}
           </div>
 
-          <div className="bg-white rounded-lg shadow">
+          <div className="bg-white rounded-lg">
             <div className="p-6 border-b border-gray-200 flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Transactions</h2>
@@ -269,7 +269,7 @@ const Payments = () => {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg p-6">
             <div className="flex items-center space-x-4">
               <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center">
                 <FiDollarSign className="text-orange-500" size={20} />
@@ -281,7 +281,7 @@ const Payments = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg p-6">
             <div className="flex items-center space-x-4">
               <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
                 <FiCheckCircle className="text-green-500" size={20} />
@@ -295,7 +295,7 @@ const Payments = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg p-6">
             <h3 className="text-sm font-medium text-gray-900 mb-2">Need help?</h3>
             <p className="text-sm text-gray-500">
               Reach out to our billing team at{' '}

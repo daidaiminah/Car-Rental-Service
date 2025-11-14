@@ -135,7 +135,7 @@ const Contact = () => {
               {contactInfo.map((item, index) => (
                 <motion.div 
                   key={index} 
-                  className="flex items-start space-x-4 bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300"
+                  className="flex items-start space-x-4 bg-white p-4 rounded-lg duration-300"
                   variants={itemVariants}
                 >
                   <div className="flex-shrink-0 mt-1 bg-primary/10 p-3 rounded-full">

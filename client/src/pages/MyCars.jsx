@@ -109,7 +109,7 @@ const MyCars = () => {
       </div>
 
       {cars.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-md p-6 text-center">
+        <div className="bg-white rounded-lg p-6 text-center">
           <FaCar className="mx-auto text-5xl text-gray-300 mb-4" />
           <h2 className="text-xl font-semibold text-secondary-dark mb-2">No Cars Yet</h2>
           <p className="text-secondary mb-4">You haven't added any cars to your fleet yet.</p>
@@ -120,7 +120,7 @@ const MyCars = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {cars.map(car => (
-            <div key={car.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div key={car.id} className="bg-white rounded-lg overflow-hidden">
               <div className="relative h-48">
                 <img 
                   src={car.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image'} 
@@ -130,15 +130,15 @@ const MyCars = () => {
                 <div className="absolute top-0 right-0 p-2 flex gap-2">
                   <Link 
                     to={`/owner/cars/${car.id}/edit`}
-                    className="bg-white p-2 rounded-full shadow-md hover:bg-gray-100 transition"
+                    className="bg-white p-2 rounded-full hover:bg-gray-100 transition"
                   >
                     <FaEdit className="text-secondary" />
                   </Link>
                   <button 
                     onClick={() => handleDeleteCar(car.id)}
-                    className="bg-white p-2 rounded-full shadow-md hover:bg-gray-100 transition"
+                    className="bg-white p-2 rounded-full hover:bg-gray-100 transition"
                   >
-                    <FaTrash className="text-red-500" />
+                    <FaTrash className="text-red-500"/>
                   </button>
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-3">

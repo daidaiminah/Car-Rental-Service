@@ -260,7 +260,7 @@ const Sidebar = () => {
               {/* Dropdown menu */}
               <div 
                 id="more-menu"
-                className="hidden absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10"
+                className="hidden absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 rounded-md bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10"
                 role="menu"
                 aria-orientation="vertical"
                 tabIndex="-1"

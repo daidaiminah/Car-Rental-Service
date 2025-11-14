@@ -37,7 +37,7 @@ const services = [
 ];
 
 const ServiceCard = ({ children, className = '' }) => (
-  <div className={`bg-white rounded-lg shadow-md overflow-hidden flex flex-col h-full border border-gray-100 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${className}`}>
+  <div className={`bg-white rounded-lg overflow-hidden flex flex-col h-full border border-gray-100 transition-all duration-300 hover:-translate-y-1 ${className}`}>
     {children}
   </div>
 );

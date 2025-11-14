@@ -24,7 +24,7 @@ const StatCard = ({ title, value, subtitle, icon: Icon, accent = 'gray' }) => {
   };
 
   return (
-    <article className="flex items-center justify-between rounded-lg bg-white p-5 shadow-sm">
+    <article className="flex items-center justify-between rounded-lg bg-white p-5">
       <div>
         <p className="text-sm font-medium text-gray-500">{title}</p>
         <p className="mt-1 text-2xl font-bold text-gray-900">{value}</p>
@@ -176,7 +176,7 @@ const OwnerDashboard = () => {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-lg bg-white p-6 shadow-sm">
+        <div className="rounded-lg bg-white p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">
               Upcoming Rentals
@@ -237,7 +237,7 @@ const OwnerDashboard = () => {
           )}
         </div>
 
-        <div className="rounded-lg bg-white p-6 shadow-sm">
+        <div className="rounded-lg bg-white p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">Your Fleet</h2>
             <Link
@@ -279,7 +279,7 @@ const OwnerDashboard = () => {
         </div>
       </section>
 
-      <section className="rounded-lg bg-white p-6 shadow-sm">
+      <section className="rounded-lg bg-white p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">
             Recent Bookings

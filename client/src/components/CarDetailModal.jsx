@@ -257,7 +257,7 @@ const CarDetailModal = ({ car, onClose, onBook }) => {
     const estimatedTotal = Math.round(threeDayTotal + serviceFee);
 
     return (
-      <div className="sticky top-4 bg-light p-6 rounded-lg shadow-lg border border-light-dark">
+      <div className="sticky top-4 bg-light p-6 rounded-lg border border-light-dark">
         <div className="mb-4">
           <p className="text-2xl font-bold mb-1 text-primary">            <span className="text-sm font-normal text-secondary-light">/day</span>
           </p>

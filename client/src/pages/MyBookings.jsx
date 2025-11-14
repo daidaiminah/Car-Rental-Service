@@ -129,7 +129,7 @@ const MyBookings = () => {
       </div>
       
       {filteredBookings.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-md p-6 text-center">
+        <div className="bg-white rounded-lg p-6 text-center">
           <FaCalendarAlt className="mx-auto text-5xl text-gray-300 mb-4" />
           <h2 className="text-xl font-semibold text-secondary-dark mb-2">No Bookings Found</h2>
           <p className="text-secondary mb-4">
@@ -153,7 +153,7 @@ const MyBookings = () => {
       ) : (
         <div className="grid grid-cols-1 gap-6">
           {filteredBookings.map(booking => (
-            <div key={booking.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div key={booking.id} className="bg-white rounded-lg overflow-hidden">
               <div className="p-6">
                 <div className="flex flex-col md:flex-row justify-between">
                   <div className="flex items-start mb-4 md:mb-0">

@@ -46,7 +46,7 @@ const About = () => {
           {/* Features Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
             {features.map((feature, index) => (
-              <div key={index} className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
+              <div key={index} className="bg-white p-6 rounded-lg duration-300">
                 <div className="mb-4">{feature.icon}</div>
                 <h3 className="text-xl font-semibold text-secondary-dark mb-2">{feature.title}</h3>
                 <p className="text-secondary-light">{feature.description}</p>
@@ -56,7 +56,7 @@ const About = () => {
         </div>
 
         {/* Our Story */}
-        <div className="bg-white rounded-lg shadow-md p-8 mb-16">
+        <div className="bg-white rounded-lg p-8 mb-16">
           <h2 className="text-3xl font-bold text-secondary-dark mb-6">Our Story</h2>
           <div className="space-y-4 text-secondary-light">
             <p>

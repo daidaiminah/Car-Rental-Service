@@ -213,7 +213,7 @@ const AddCar = () => {
           Back to Dashboard
         </button>
         
-        <div className="bg-white shadow-md rounded-lg p-6">
+        <div className="bg-white rounded-lg p-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-6">Add New Car</h1>
           
           <form onSubmit={handleSubmit}>
@@ -229,7 +229,7 @@ const AddCar = () => {
                   value={carData.make}
                   onChange={handleInputChange}
                   placeholder="e.g. Toyota, Honda"
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
+                  className="block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary"
                   required
                 />
               </div>
@@ -245,7 +245,7 @@ const AddCar = () => {
                   value={carData.model}
                   onChange={handleInputChange}
                   placeholder="e.g. Camry, Civic"
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
+                  className="block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary"
                   required
                 />
               </div>
@@ -262,7 +262,7 @@ const AddCar = () => {
                   onChange={handleInputChange}
                   min="1990"
                   max={new Date().getFullYear() + 1}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
+                  className="block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary"
                   required
                 />
               </div>
@@ -276,7 +276,7 @@ const AddCar = () => {
                   name="type"
                   value={carData.type}
                   onChange={handleInputChange}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
+                  className="block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary"
                   required
                 >
                   <option value="sedan">Sedan</option>
@@ -298,7 +298,7 @@ const AddCar = () => {
                   name="transmission"
                   value={carData.transmission}
                   onChange={handleInputChange}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
+                  className="block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary"
                   required
                 >
                   <option value="automatic">Automatic</option>
@@ -315,7 +315,7 @@ const AddCar = () => {
                   name="fuelType"
                   value={carData.fuelType}
                   onChange={handleInputChange}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
+                  className="block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary"
                   required
                 >
                   <option value="gasoline">Gasoline</option>
@@ -337,7 +337,7 @@ const AddCar = () => {
                   onChange={handleInputChange}
                   min="1"
                   max="12"
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
+                  className="block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary"
                   required
                 />
               </div>
@@ -355,7 +355,7 @@ const AddCar = () => {
                   min="1"
                   step="0.01"
                   placeholder="e.g. 50.00"
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
+                  className="block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary"
                   required
                 />
               </div>
@@ -371,7 +371,7 @@ const AddCar = () => {
                   value={carData.location}
                   onChange={handleInputChange}
                   placeholder="e.g. Monrovia, Liberia"
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
+                  className="block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary"
                   required
                 />
               </div>
@@ -388,7 +388,7 @@ const AddCar = () => {
                 onChange={handleInputChange}
                 rows="4"
                 placeholder="Describe your car's features, condition, etc."
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
+                className="block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary"
                 required
               ></textarea>
             </div>

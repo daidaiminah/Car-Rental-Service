@@ -81,7 +81,7 @@ const TermsOfService = () => {
           </p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-8 mb-8">
+        <div className="bg-white rounded-lg p-8 mb-8">
           <p className="mb-6 text-secondary-light">
             Welcome to Whip In Town Car Rental. By using our services, you agree to these terms and conditions. 
             Please read them carefully before making a reservation.
@@ -106,7 +106,7 @@ const TermsOfService = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-8">
+        <div className="bg-white rounded-lg p-8">
           <h2 className="text-2xl font-semibold text-secondary-dark mb-4">Contact Us</h2>
           <p className="text-secondary-light">
             If you have any questions about these Terms of Service, please contact us at:

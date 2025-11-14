@@ -124,7 +124,7 @@ const ReduxExample = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {cars && cars.length > 0 ? (
           cars.map(car => (
-            <div key={car.id} className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+            <div key={car.id} className="border rounded-lg overflow-hidden">
               <div className="h-48 overflow-hidden">
                 <img 
                   src={car.image || 'https://via.placeholder.com/300x200?text=No+Image'} 

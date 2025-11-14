@@ -47,7 +47,7 @@ const SocialMedia = () => {
           {socialMediaProfiles.map((social, index) => (
             <div 
               key={index}
-              className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-300"
+              className="bg-white rounded-lg duration-300"
             >
               <div className="flex items-start">
                 <div className="flex-shrink-0">
@@ -74,7 +74,7 @@ const SocialMedia = () => {
           ))}
         </div>
 
-        <div className="mt-12 bg-white rounded-lg shadow-md p-8 text-center">
+        <div className="mt-12 bg-white rounded-lg p-8 text-center">
           <h2 className="text-2xl font-semibold text-secondary-dark mb-4">Need Help?</h2>
           <p className="text-secondary-light mb-6">
             Our customer support team is available 24/7 to assist you with any questions or concerns.

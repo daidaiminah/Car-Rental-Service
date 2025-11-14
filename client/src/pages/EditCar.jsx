@@ -126,7 +126,7 @@ const EditCar = () => {
           Back
         </button>
 
-        <div className="rounded-lg bg-white p-6 shadow-md">
+        <div className="rounded-lg bg-white p-6">
           <h1 className="mb-6 text-2xl font-bold text-gray-900">Edit Car</h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
