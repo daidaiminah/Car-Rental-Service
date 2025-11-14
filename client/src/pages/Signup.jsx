@@ -62,10 +62,15 @@ const Signup = () => {
   };
 
   const handleGoogleSignIn = () => {
+    if (!userType) {
+      toast.error('Please select whether you are renting or listing a car.');
+      return;
+    }
+    const role = userType === 'rent' ? 'customer' : 'owner';
     if (typeof window === 'undefined') return;
     const apiBase = getApiBaseUrl();
     const callbackUrl = `${window.location.origin}/auth/callback`;
-    const authUrl = `${apiBase}/auth/google?redirect=${encodeURIComponent(callbackUrl)}`;
+    const authUrl = `${apiBase}/auth/google?redirect=${encodeURIComponent(callbackUrl)}&role=${role}`;
     window.location.href = authUrl;
   };
 

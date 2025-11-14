@@ -12,6 +12,8 @@ const {
   JWT_SECRET
 } = process.env;
 
+const VALID_ROLES = ['customer', 'owner'];
+
 const DEFAULT_CLIENT_URL = CLIENT_URL || 'http://localhost:5000';
 
 const oauthScopes = [
@@ -19,6 +21,12 @@ const oauthScopes = [
   'https://www.googleapis.com/auth/userinfo.profile',
   'openid',
 ];
+
+const sanitizeRole = (role) => {
+  if (!role) return null;
+  const normalized = String(role).toLowerCase();
+  return VALID_ROLES.includes(normalized) ? normalized : null;
+};
 
 const getOAuthClient = () => {
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REDIRECT_URI) {
@@ -69,7 +77,7 @@ const createJwtForUser = (user) => {
   });
 };
 
-const findOrCreateUser = async ({ email, name, picture, googleId }) => {
+const findOrCreateUser = async ({ email, name, picture, googleId, requestedRole }) => {
   let user = await db.User.findOne({ where: { email } });
 
   if (!user) {
@@ -80,7 +88,7 @@ const findOrCreateUser = async ({ email, name, picture, googleId }) => {
       name: name || 'Google User',
       email,
       password: hashedPassword,
-      role: 'customer',
+      role: requestedRole || 'customer',
       isVerified: true,
       profileImage: picture,
       authProvider: 'google',
@@ -88,6 +96,13 @@ const findOrCreateUser = async ({ email, name, picture, googleId }) => {
     });
   } else {
     const updates = {};
+
+    if (requestedRole && user.role && user.role !== requestedRole) {
+      const error = new Error('ROLE_MISMATCH');
+      error.code = 'ROLE_MISMATCH';
+      error.details = { expected: user.role, requested: requestedRole };
+      throw error;
+    }
 
     if (!user.authProvider) {
       updates.authProvider = 'google';
@@ -97,6 +112,9 @@ const findOrCreateUser = async ({ email, name, picture, googleId }) => {
     }
     if (!user.profileImage && picture) {
       updates.profileImage = picture;
+    }
+    if (!user.role && requestedRole) {
+      updates.role = requestedRole;
     }
 
     if (Object.keys(updates).length > 0) {
@@ -114,10 +132,19 @@ export const initiateGoogleAuth = (req, res) => {
       req.query.redirect ||
       req.headers.referer ||
       DEFAULT_CLIENT_URL;
+    const requestedRole = sanitizeRole(req.query.role);
+
+    if (!requestedRole) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please choose a valid user type before continuing with Google.'
+      });
+    }
 
     const state = encodeState({
       redirect: redirectTarget,
       nonce: crypto.randomBytes(8).toString('hex'),
+      role: requestedRole
     });
 
     const authUrl = oauthClient.generateAuthUrl({
@@ -151,6 +178,16 @@ export const handleGoogleCallback = async (req, res) => {
     const oauthClient = getOAuthClient();
     const statePayload = decodeState(state);
     const redirectTarget = statePayload.redirect || DEFAULT_CLIENT_URL;
+    const requestedRole = sanitizeRole(statePayload.role);
+
+    if (!requestedRole) {
+      const errorUrl = buildRedirectUrl(redirectTarget, {
+        provider: 'google',
+        status: 'error',
+        message: 'User type is missing. Please choose renter or owner before signing in.'
+      });
+      return res.redirect(errorUrl);
+    }
 
     const { tokens } = await oauthClient.getToken(code);
     const ticket = await oauthClient.verifyIdToken({
@@ -176,6 +213,7 @@ export const handleGoogleCallback = async (req, res) => {
       name: payload.name,
       picture: payload.picture,
       googleId: payload.sub,
+      requestedRole
     });
 
     const token = createJwtForUser(user);
@@ -188,6 +226,14 @@ export const handleGoogleCallback = async (req, res) => {
     return res.redirect(successUrl);
   } catch (error) {
     console.error('Google OAuth callback error:', error);
+    if (error.code === 'ROLE_MISMATCH') {
+      const fallback = buildRedirectUrl(DEFAULT_CLIENT_URL, {
+        provider: 'google',
+        status: 'error',
+        message: 'This Google account is already registered with a different user type.'
+      });
+      return res.redirect(fallback);
+    }
     const fallbackRedirect = buildRedirectUrl(DEFAULT_CLIENT_URL, {
       provider: 'google',
       status: 'error',

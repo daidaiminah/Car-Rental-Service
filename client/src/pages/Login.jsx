@@ -42,10 +42,19 @@ const Login = () => {
   };
 
   const handleGoogleSignIn = () => {
+    if (!userType) {
+      toast.error('Please select what you want to do first.');
+      return;
+    }
+    const role = userTypeToRole[userType];
+    if (!role) {
+      toast.error('Invalid user type selection.');
+      return;
+    }
     if (typeof window === 'undefined') return;
     const apiBase = getApiBaseUrl();
     const callbackUrl = `${window.location.origin}/auth/callback`;
-    const authUrl = `${apiBase}/auth/google?redirect=${encodeURIComponent(callbackUrl)}`;
+    const authUrl = `${apiBase}/auth/google?redirect=${encodeURIComponent(callbackUrl)}&role=${role}`;
     window.location.href = authUrl;
   };
 
