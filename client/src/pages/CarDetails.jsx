@@ -40,6 +40,13 @@ const statusBadgeClasses = (status) => {
   }
 };
 
+const getInitials = (value) => {
+  if (!value) return 'O';
+  const parts = value.trim().split(' ');
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase();
+};
+
 const CarDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -67,6 +74,14 @@ const CarDetails = () => {
     if (carResponse.data) return carResponse.data;
     return carResponse;
   }, [carResponse]);
+  const ownerProfile = car?.owner || null;
+  const ownerDisplayName = ownerProfile?.name || car?.owner || 'Vehicle Owner';
+  const ownerAvatar = ownerProfile?.profileImage || null;
+  const ownerJoinedDate = ownerProfile?.createdAt
+    ? format(new Date(ownerProfile.createdAt), 'MMMM d, yyyy')
+    : null;
+  const ownerEmail = ownerProfile?.email || null;
+  const ownerId = ownerProfile?.id || car?.ownerId;
 
   const rentals = useMemo(() => {
     const raw = rentalsResponse?.data ?? rentalsResponse ?? [];
@@ -229,15 +244,47 @@ const CarDetails = () => {
               </div>
             </div>
 
-            {car.ownerId && (
+            {ownerId && (
               <div className="rounded-xl bg-white p-6">
                 <h2 className="text-lg font-semibold text-gray-800">Owner information</h2>
-                <p className="mt-2 text-sm text-gray-600">
-                  Owner ID: {car.ownerId}
-                </p>
-                <p className="text-sm text-gray-600">
-                  {car.owner ? `Listed by ${car.owner}` : "Contact support for owner details."}
-                </p>
+                <div className="mt-4 flex items-center gap-4">
+                  {ownerAvatar ? (
+                    <img
+                      src={ownerAvatar}
+                      alt={ownerDisplayName}
+                      className="h-14 w-14 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-14 w-14 rounded-full bg-primary/10 text-primary flex items-center justify-center text-lg font-semibold">
+                      {getInitials(ownerDisplayName)}
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-base font-semibold text-gray-900">{ownerDisplayName}</p>
+                    {ownerJoinedDate && (
+                      <p className="text-xs text-gray-500">
+                        Host since {ownerJoinedDate}
+                      </p>
+                    )}
+                    {ownerEmail && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {ownerEmail}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-4 text-sm text-gray-600">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-gray-400">Owner ID</p>
+                    <p className="font-medium text-gray-800">{ownerId}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-gray-400">Vehicle status</p>
+                    <p className={`font-medium ${car.isAvailable ? 'text-green-600' : 'text-red-600'}`}>
+                      {car.isAvailable ? 'Available for booking' : 'Currently unavailable'}
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
           </div>

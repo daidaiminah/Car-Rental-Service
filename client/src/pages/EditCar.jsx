@@ -27,6 +27,7 @@ const EditCar = () => {
     year: '',
     rentalPricePerDay: '',
     isAvailable: true,
+    featuresInput: '',
   });
 
   useEffect(() => {
@@ -43,6 +44,9 @@ const EditCar = () => {
             : '',
         isAvailable:
           typeof car.isAvailable === 'boolean' ? car.isAvailable : true,
+        featuresInput: Array.isArray(car.features)
+          ? car.features.join(', ')
+          : car.features || '',
       });
     }
   }, [car]);
@@ -86,6 +90,11 @@ const EditCar = () => {
     }
 
     try {
+      const featuresArray = formState.featuresInput
+        .split(',')
+        .map((feature) => feature.trim())
+        .filter(Boolean);
+
       await updateCar({
         id,
         make: formState.make,
@@ -94,6 +103,7 @@ const EditCar = () => {
         rentalPricePerDay: priceNumber,
         isAvailable:
           formState.isAvailable === true || formState.isAvailable === 'true',
+        features: featuresArray,
       }).unwrap();
 
       toast.success('Car updated successfully');
@@ -185,6 +195,23 @@ const EditCar = () => {
                   required
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Features (comma separated)
+              </label>
+              <textarea
+                name="featuresInput"
+                value={formState.featuresInput}
+                onChange={handleChange}
+                rows="3"
+                placeholder="e.g. Bluetooth, Leather Seats, Backup Camera"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Separate each feature with a comma.
+              </p>
             </div>
 
             <div>

@@ -47,11 +47,32 @@ const Header = ({ onMenuClick }) => {
     };
   }, []);
 
-  // Get dashboard URL based on user role
-  const getDashboardUrl = () => {
+  const getRoleBasePath = () => {
     if (user?.role === 'admin') return '/admin';
     if (user?.role === 'owner') return '/owner';
-    return '/renter';
+    if (user?.role === 'customer' || user?.role === 'renter') return '/renter';
+    return '';
+  };
+
+  // Get dashboard URL based on user role
+  const getDashboardUrl = () => {
+    const base = getRoleBasePath();
+    return base || '/';
+  };
+
+  const getProfileUrl = () => {
+    const base = getRoleBasePath();
+    return base ? `${base}/profile` : '/profile';
+  };
+
+  const getSettingsUrl = () => {
+    const base = getRoleBasePath();
+    return base ? `${base}/settings` : '/settings';
+  };
+
+  const getSupportUrl = () => {
+    const base = getRoleBasePath();
+    return base ? `${base}/help` : '/help';
   };
 
   // Toggle search on mobile
@@ -102,9 +123,9 @@ const Header = ({ onMenuClick }) => {
   const renderMobileNavLinks = () => {
     // Common links for all authenticated users
     const commonLinks = [
-      { to: '/profile', text: 'My Profile', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
-      { to: '/settings', text: 'Settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
-      { to: '/help', text: 'Help & Support', icon: 'M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zM12 13a1 1 0 100-2 1 1 0 000 2z' },
+      { to: getProfileUrl(), text: 'My Profile', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
+      { to: getSettingsUrl(), text: 'Settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
+      { to: getSupportUrl(), text: 'Help & Support', icon: 'M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zM12 13a1 1 0 100-2 1 1 0 000 2z' },
     ];
 
     // Get the appropriate links for the current section
@@ -524,14 +545,14 @@ useEffect(() => {
                           Dashboard
                         </Link>
                         <Link
-                          to="/profile"
+                          to={getProfileUrl()}
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                           onClick={() => setIsProfileOpen(false)}
                         >
                           My Profile
                         </Link>
                         <Link
-                          to="/settings"
+                          to={getSettingsUrl()}
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                           onClick={() => setIsProfileOpen(false)}
                         >

@@ -1,6 +1,39 @@
 import db from "../models/index.js";
 
 const Car = db.Car;
+const { Op } = db.Sequelize;
+const ownerInclude = {
+  model: db.User,
+  as: 'owner',
+  attributes: ['id', 'name', 'email', 'profileImage', 'createdAt']
+};
+
+const normalizeBoolean = (value, defaultValue = false) => {
+  if (value === undefined || value === null || value === '') return defaultValue;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const lowered = value.toLowerCase();
+    return lowered === 'true' || lowered === '1' || lowered === 'yes';
+  }
+  if (typeof value === 'number') return value !== 0;
+  return defaultValue;
+};
+
+const normalizeFeatures = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item).trim())
+      .filter(Boolean);
+  }
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return [];
+};
 
 // Create a new car
 export const createCar = async (req, res) => {
@@ -41,7 +74,9 @@ export const createCar = async (req, res) => {
       rating,
       location,
       ownerId,
-      owner
+      owner,
+      features,
+      isAvailable
     } = req.body;
     
     // Validate required fields
@@ -58,7 +93,7 @@ export const createCar = async (req, res) => {
       model,
       year: parseInt(year, 10),
       rentalPricePerDay: parseFloat(rentalPricePerDay),
-      isAvailable: true,
+      isAvailable: normalizeBoolean(isAvailable, true),
       type,
       transmission,
       seats: parseInt(seats, 10),
@@ -68,7 +103,8 @@ export const createCar = async (req, res) => {
       rating: rating ? parseFloat(rating) : 4.5,
       location: location || 'Not specified',
       ownerId: ownerId || null,
-      owner: owner || 'Unknown'
+      owner: owner || 'Unknown',
+      features: normalizeFeatures(features)
     });
 
     return res.status(201).json({
@@ -89,24 +125,32 @@ export const createCar = async (req, res) => {
 // Get all cars
 export const getAllCars = async (req, res) => {
   try {
-    const { type, minPrice, maxPrice, search, limit = 10 } = req.query;
+    const { type, minPrice, maxPrice, search, limit = 10, status } = req.query;
     
     const whereClause = {};
     
     // Add filters if provided
     if (type) whereClause.type = type;
-    if (minPrice) whereClause.rentalPricePerDay = { [db.Sequelize.Op.gte]: parseFloat(minPrice) };
+    if (minPrice) whereClause.rentalPricePerDay = { [Op.gte]: parseFloat(minPrice) };
     if (maxPrice) {
       whereClause.rentalPricePerDay = {
         ...whereClause.rentalPricePerDay,
-        [db.Sequelize.Op.lte]: parseFloat(maxPrice)
+        [Op.lte]: parseFloat(maxPrice)
       };
     }
     if (search) {
-      whereClause[db.Sequelize.Op.or] = [
-        { make: { [db.Sequelize.Op.iLike]: `%${search}%` } },
-        { model: { [db.Sequelize.Op.iLike]: `%${search}%` } }
+      whereClause[Op.or] = [
+        { make: { [Op.iLike]: `%${search}%` } },
+        { model: { [Op.iLike]: `%${search}%` } }
       ];
+    }
+
+    if (status) {
+      if (status === 'available') {
+        whereClause.isAvailable = true;
+      } else if (status === 'unavailable') {
+        whereClause.isAvailable = false;
+      }
     }
     
     const cars = await Car.findAll({
@@ -134,7 +178,9 @@ export const getAllCars = async (req, res) => {
 export const getCarById = async (req, res) => {
   try {
     const { id } = req.params;
-    const car = await Car.findByPk(id);
+    const car = await Car.findByPk(id, {
+      include: [ownerInclude]
+    });
     
     if (!car) {
       return res.status(404).json({
@@ -161,7 +207,20 @@ export const getCarById = async (req, res) => {
 export const updateCar = async (req, res) => {
   try {
     const { id } = req.params;
-    const { make, model, year, rentalPricePerDay, isAvailable } = req.body;
+    const {
+      make,
+      model,
+      year,
+      rentalPricePerDay,
+      isAvailable,
+      description,
+      location,
+      transmission,
+      seats,
+      fuelType,
+      type,
+      features
+    } = req.body;
     
     // Check if car exists
     const car = await Car.findByPk(id);
@@ -172,14 +231,25 @@ export const updateCar = async (req, res) => {
       });
     }
 
-    // Update car
-    await car.update({
-      make: make || car.make,
-      model: model || car.model,
-      year: year || car.year,
-      rentalPricePerDay: rentalPricePerDay || car.rentalPricePerDay,
-      isAvailable: isAvailable !== undefined ? isAvailable : car.isAvailable
-    });
+    const updates = {};
+    if (make) updates.make = make;
+    if (model) updates.model = model;
+    if (year) updates.year = Number(year);
+    if (rentalPricePerDay) updates.rentalPricePerDay = Number(rentalPricePerDay);
+    if (type) updates.type = type;
+    if (transmission) updates.transmission = transmission;
+    if (seats) updates.seats = Number(seats);
+    if (fuelType) updates.fuelType = fuelType;
+    if (description) updates.description = description;
+    if (location) updates.location = location;
+    if (req.body.features !== undefined) {
+      updates.features = normalizeFeatures(features);
+    }
+    if (req.body.isAvailable !== undefined) {
+      updates.isAvailable = normalizeBoolean(isAvailable, car.isAvailable);
+    }
+
+    await car.update(updates);
 
     return res.status(200).json({
       success: true,
@@ -345,15 +415,15 @@ export const getAvailableCars = async (req, res) => {
     const rentedCars = await db.Rental.findAll({
       where: {
         status: {
-          [db.Sequelize.Op.notIn]: ['cancelled', 'completed'],
+          [Op.notIn]: ['cancelled', 'completed'],
         },
         // Check for date overlaps: A car is unavailable if an existing rental period
         // starts before the new booking ends AND ends after the new booking starts.
         startDate: {
-          [db.Sequelize.Op.lt]: end,
+          [Op.lt]: end,
         },
         endDate: {
-          [db.Sequelize.Op.gt]: start,
+          [Op.gt]: start,
         },
       },
       attributes: ['carId']
@@ -365,7 +435,7 @@ export const getAvailableCars = async (req, res) => {
     // Get all available cars that are not in the rented list
     const availableCars = await db.Car.findAll({
       where: {
-        id: { [db.Sequelize.Op.notIn]: rentedCarIds },
+        id: { [Op.notIn]: rentedCarIds },
         isAvailable: true
       },
       attributes: ['id', 'make', 'model', 'year', 'type', 'rentalPricePerDay', 'imageUrl', 'seats', 'transmission', 'fuelType']

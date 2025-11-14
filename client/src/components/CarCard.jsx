@@ -1,9 +1,25 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FiStar, FiMapPin, FiUsers, FiDroplet, FiClock } from 'react-icons/fi';
+import { FiStar, FiMapPin, FiUsers, FiDroplet } from 'react-icons/fi';
 
+const normalizeFeatures = (features) => {
+  if (!features) return [];
+  if (Array.isArray(features)) {
+    return features.map((feature) => String(feature).trim()).filter(Boolean);
+  }
+  if (typeof features === 'string') {
+    return features
+      .split(',')
+      .map((feature) => feature.trim())
+      .filter(Boolean);
+  }
+  return [];
+};
 
 const CarCard = ({ car }) => {
+  const isAvailable = car.isAvailable !== false;
+  const featureBadges = normalizeFeatures(car.features).slice(0, 3);
+
   return (
     <div className="bg-white rounded-xl overflow-hidden duration-300">
       <div className="relative">
@@ -16,10 +32,15 @@ const CarCard = ({ car }) => {
             e.target.src = 'https://via.placeholder.com/300x200?text=Car+Image';
           }}
         />
-        <div className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5">
-          <button className="text-gray-500 hover:text-yellow-500">
-            <FiStar className="w-5 h-5" />
-          </button>
+        <div className="absolute top-2 right-2 flex flex-col gap-2 items-end">
+          <div className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${isAvailable ? 'bg-green-500/90 text-white' : 'bg-red-500/90 text-white'}`}>
+            {isAvailable ? 'Available' : 'Unavailable'}
+          </div>
+          <div className="bg-white/90 rounded-full p-1.5">
+            <button className="text-gray-500 hover:text-yellow-500" type="button">
+              <FiStar className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
       
@@ -70,11 +91,25 @@ const CarCard = ({ car }) => {
           </div>
         </div>
 
-        <Link 
+        {featureBadges.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {featureBadges.map((feature) => (
+              <span
+                key={feature}
+                className="text-xs rounded-full bg-gray-100 px-3 py-1 text-gray-600"
+              >
+                {feature}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <Link
           to={`/cars/${car.id}`}
-          className="mt-4 block w-full bg-primary hover:bg-primary-dark text-white text-center py-2 px-4 rounded-lg font-medium transition-colors"
+          className={`mt-4 block w-full text-center py-2 px-4 rounded-lg font-medium transition-colors ${isAvailable ? 'bg-primary hover:bg-primary-dark text-white' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`}
+          aria-disabled={!isAvailable}
         >
-          Book Now
+          {isAvailable ? 'Book Now' : 'Not Available'}
         </Link>
       </div>
     </div>
