@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/authContext';
 import { FiMenu, FiX, FiSearch, FiUser, FiLogOut, FiChevronDown, FiMapPin, FiPhone, FiMail } from 'react-icons/fi';
@@ -118,6 +118,8 @@ const Header = ({ onMenuClick }) => {
   };
 
   const navigationLinks = getNavigationLinks();
+
+ 
 
   // Mobile navigation links based on authentication and route
   const renderMobileNavLinks = () => {
@@ -519,19 +521,31 @@ useEffect(() => {
               {/* User menu */}
               {isAuthenticated ? (
                 <div className="relative" ref={profileRef}>
-                  <button
-                    type="button"
-                    className="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100 focus:outline-none"
-                    onClick={() => setIsProfileOpen(!isProfileOpen)}
-                  >
-                    <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center">
-                      <FiUser className="h-4 w-4" />
-                    </div>
-                    <span className="hidden md:inline text-sm font-medium text-gray-700">
-                      {user?.name || 'My Account'}
+                 <button
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="flex items-center max-w-xs rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                  id="user-menu"
+                  aria-haspopup="true"
+                >
+                  <span className="sr-only">Open user menu</span>
+                  <div className="flex items-center">
+                    {user?.profileImageSrc ? (
+                      <img
+                        className="h-8 w-8 rounded-full"
+                        src={user.profileImageSrc}
+                        alt={`${user.name || 'User'} profile`}
+                      />
+                    ) : (
+                      <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600">
+                        <FiUser className="h-4 w-4" />
+                      </div>
+                    )}
+                    <span className="ml-2 text-sm font-medium text-gray-700 hidden md:inline-block">
+                      {user?.name || 'User'}
                     </span>
-                    <FiChevronDown className="hidden md:inline h-4 w-4 text-gray-500" />
-                  </button>
+                    <FiChevronDown className="ml-1 h-4 w-4 text-gray-500 hidden md:block" />
+                  </div>
+                 </button>
 
                   {/* Dropdown menu */}
                   {isProfileOpen && (

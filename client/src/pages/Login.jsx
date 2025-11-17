@@ -14,6 +14,7 @@ const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
+    rememberMe: false,
   });
   const [userType, setUserType] = useState('');
   const [error, setError] = useState('');
@@ -85,7 +86,8 @@ const Login = () => {
       const response = await login({
         email: formData.email,
         password: formData.password,
-        role
+        role,
+        rememberMe: formData.rememberMe
       }).unwrap();
       
       // The response should include both token and user data
@@ -113,7 +115,8 @@ const Login = () => {
         // Dispatch the setCredentials action
         dispatch(setCredentials({
           user: userData,
-          token: response.token
+          token: response.token,
+          rememberMe: formData.rememberMe
         }));
         
         // Determine redirect path based on role
@@ -264,24 +267,26 @@ const Login = () => {
               </div>
             </div>
           </div>
-
+          
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <input
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
+                checked={formData.rememberMe}
+                onChange={(e) => setFormData({...formData, rememberMe: e.target.checked})}
                 className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
               />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
                 Remember me
               </label>
             </div>
 
             <div className="text-sm">
-              <a href="#" className="font-medium text-primary hover:text-primary-dark">
+              <Link to="/forgot-password" className="font-medium text-primary hover:text-primary-dark">
                 Forgot your password?
-              </a>
+              </Link>
             </div>
           </div>
 

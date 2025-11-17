@@ -23,7 +23,7 @@ export const authApiSlice = createApi({
     login: builder.mutation({
       query: (credentials) => {
         // Extract role from credentials
-        const { email, password, role } = credentials;
+        const { email, password, role, rememberMe } = credentials;
         return {
           url: '/auth/login',
           method: 'POST',
@@ -37,9 +37,11 @@ export const authApiSlice = createApi({
       transformResponse: (response) => {
         // The backend sends the token inside response.data
         if (response && response.data) {
+
           return {
             ...response.data,  // Spread all user data
-            token: response.data.token  // Get token from data object
+            token: response.data.token,  // Get token from data object
+            rememberMe: response.data.rememberMe
           };
         }
         return response;
@@ -122,6 +124,31 @@ export const authApiSlice = createApi({
         };
       },
     }),
+    forgotPassword: builder.mutation({
+      query: (email) => ({
+        url: '/auth/forgot-password',
+        method: 'POST',
+        body: { email },
+      }),
+      transformResponse: (response) => {
+        if (response && response.data) {
+          return response.data;
+        }
+        return response;
+      },
+      transformErrorResponse: (response) => {
+        if (response.status === 404) {
+          return {
+            status: response.status,
+            message: response.data?.message || 'User not found'
+          };
+        }
+        return {
+          status: response.status,
+          message: response.data?.message || 'An error occurred during forgot password'
+        };
+      },
+    }),
     getCurrentUser: builder.query({
       query: () => '/auth/me',
       transformResponse: (response) => {
@@ -139,4 +166,5 @@ export const {
   useLoginMutation,
   useSignupMutation,
   useGetCurrentUserQuery,
+  useForgotPasswordMutation,
 } = authApiSlice;

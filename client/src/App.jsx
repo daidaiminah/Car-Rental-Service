@@ -22,6 +22,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import AuthCallback from './pages/AuthCallback';
 import NotFound from './pages/NotFound';
+import ForgotPassword from './pages/ForgotPassword';
 import ScrollToTop from './components/ScrollToTop';
 
 // Dashboard pages
@@ -216,6 +217,7 @@ function AppContent() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       
       {/* 404 - Keep at the end */}
       <Route path="*" element={<NotFound />} />

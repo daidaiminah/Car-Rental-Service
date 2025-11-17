@@ -215,7 +215,7 @@ const MyBookings = () => {
                 
                 <div className="flex justify-end mt-4 space-x-2">
                   <button 
-                    onClick={() => window.location.href = `/booking-details/${booking.id}`}
+                    onClick={() => window.location.href = `/bookings/${booking.id}`}
                     className="btn-secondary-outline"
                   >
                     View Details
