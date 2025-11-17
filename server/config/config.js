@@ -17,8 +17,10 @@ const productionConfig = {
   port: parsePort(process.env.PDB_PORT),
   logging: false,
   dialectOptions: {
-    ssl: false
-    
+    ssl: {
+      require: true,
+      rejectUnauthorized: false
+    }
   }
 };
 

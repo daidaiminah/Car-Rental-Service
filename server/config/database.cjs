@@ -13,8 +13,10 @@ const productionConfig = {
   port: parsePort(process.env.PDB_PORT),
   dialect: "postgres",
   dialectOptions: {
-    ssl: false
-    
+    ssl: {
+      require: true,
+      rejectUnauthorized: false
+    }
   }
 };
 
