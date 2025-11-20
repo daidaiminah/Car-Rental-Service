@@ -14,6 +14,8 @@ const AuthCallback = () => {
     const url = new URL(window.location.href);
     const status = url.searchParams.get('status');
     const token = url.searchParams.get('token');
+    const rememberMe = url.searchParams.get('rememberMe') === 'true';
+    const from = url.searchParams.get('from') || '/';
 
     if (status !== 'success' || !token) {
       toast.error('Unable to sign in with Google. Please try again.');
@@ -24,22 +26,37 @@ const AuthCallback = () => {
 
     const finalizeAuth = async () => {
       try {
-        localStorage.setItem('token', token);
-
-        const response = await fetch(`${getApiBaseUrl()}/auth/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch user profile');
+        // Store token in appropriate storage
+        const storage = rememberMe ? localStorage : sessionStorage;
+        storage.setItem('token', token);
+        
+        if (rememberMe) {
+          localStorage.setItem('rememberMe', 'true');
         }
 
+        const response = await fetch(`${getApiBaseUrl()}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch user profile');
+
         const user = await response.json();
-        dispatch(setCredentials({ user, token }));
-        toast.success('Signed in with Google');
-        navigate('/dashboard', { replace: true });
+        dispatch(setCredentials({ user, token, rememberMe }));
+        
+        // Determine redirect path based on role
+        let redirectPath = from;
+        if (from === '/') {
+          if (user.role === 'admin') {
+            redirectPath = '/admin';
+          } else if (user.role === 'owner') {
+            redirectPath = '/owner';
+          } else if (user.role === 'customer') {
+            redirectPath = '/renter';
+          }
+        }
+
+        toast.success('Successfully signed in with Google');
+        navigate(redirectPath, { replace: true });
       } catch (error) {
         console.error('Social auth completion failed:', error);
         toast.error('Unable to complete Google sign-in. Please try again.');

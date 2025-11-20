@@ -430,7 +430,7 @@ useEffect(() => {
               </div>
               <div className="hidden md:flex items-center">
                 <FiPhone className="mr-1 text-primary" />
-                <span>+1 234 567 890</span>
+                <span>+231 881 617 698</span>
               </div>
               <div className="hidden md:flex items-center">
                 <FiMail className="mr-1 text-primary" />
@@ -448,7 +448,7 @@ useEffect(() => {
       </div>
 
       {/* Main header */}
-      <header className="sticky top-0 z-10 bg-white">
+      <header className="sticky top-0 z-30 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
@@ -501,6 +501,7 @@ useEffect(() => {
                 <Link to="/cars" className="text-gray-700 hover:text-primary font-medium">Cars</Link>
                 <Link to="/about" className="text-gray-700 hover:text-primary font-medium">About</Link>
                 <Link to="/contact" className="text-gray-700 hover:text-primary font-medium">Contact</Link>
+                <Link to="/services" className="text-gray-700 hover:text-primary font-medium">Services</Link>
               </div>
 
               {/* Search button */}
@@ -529,18 +530,22 @@ useEffect(() => {
                 >
                   <span className="sr-only">Open user menu</span>
                   <div className="flex items-center">
-                    {user?.profileImageSrc ? (
+                    {user?.profileImage ? (
                       <img
-                        className="h-8 w-8 rounded-full"
-                        src={user.profileImageSrc}
+                        className="h-8 w-8 rounded-full object-cover"
+                        src={user.profileImage.startsWith('http') ? user.profileImage : `${getApiBaseUrl().replace('/api', '')}${user.profileImage}`}
                         alt={`${user.name || 'User'} profile`}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=random`;
+                        }}
                       />
                     ) : (
                       <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600">
                         <FiUser className="h-4 w-4" />
                       </div>
                     )}
-                    <span className="ml-2 text-sm font-medium text-gray-700 hidden md:inline-block">
+                    <span className="ml-2 text-sm font-medium text-gray-700 hidden md:inline-block truncate max-w-[120px]">
                       {user?.name || 'User'}
                     </span>
                     <FiChevronDown className="ml-1 h-4 w-4 text-gray-500 hidden md:block" />

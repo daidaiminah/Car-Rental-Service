@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { FiLogIn, FiUser, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
-import { FaCar } from 'react-icons/fa';
-import { FcGoogle } from 'react-icons/fc';
+import { FiLogIn, FiUser, FiLock, FiEye, FiEyeOff, FiMail } from 'react-icons/fi';
+import { FaCar, FaGoogle } from 'react-icons/fa';
 import { useLoginMutation } from "../store/features/auth/authApiSlice";
 import { setCredentials } from '../store/features/auth/authSlice';
 import { toast } from 'react-toastify';
@@ -55,9 +54,24 @@ const Login = () => {
     if (typeof window === 'undefined') return;
     const apiBase = getApiBaseUrl();
     const callbackUrl = `${window.location.origin}/auth/callback`;
-    const authUrl = `${apiBase}/auth/google?redirect=${encodeURIComponent(callbackUrl)}&role=${role}`;
+    const currentPath = window.location.pathname;
+    const authUrl = `${apiBase}/auth/google?redirect=${encodeURIComponent(callbackUrl)}&role=${role}&from=${encodeURIComponent(currentPath)}`;
     window.location.href = authUrl;
   };
+
+  // Check for saved email on component mount
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('savedEmail');
+    const rememberMe = localStorage.getItem('rememberMe') === 'true';
+    
+    if (savedEmail && rememberMe) {
+      setFormData(prev => ({
+        ...prev,
+        email: savedEmail,
+        rememberMe: true
+      }));
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -70,8 +84,13 @@ const Login = () => {
     }
     
     // Validate email and password
-    if (!formData.email || !formData.password) {
-      toast.error('Please enter both email and password');
+    if (!formData.email) {
+      toast.error('Please enter your email');
+      return;
+    }
+    
+    if (!formData.password) {
+      toast.error('Please enter your password');
       return;
     }
 
@@ -100,6 +119,15 @@ const Login = () => {
           ? `Welcome back, ${response.name}!`  
           : 'Successfully logged in!';
         toast.success(welcomeMessage);
+        
+        // Store the rememberMe preference and email if checked
+        if (formData.rememberMe) {
+          localStorage.setItem('rememberMe', 'true');
+          localStorage.setItem('savedEmail', formData.email);
+        } else {
+          localStorage.removeItem('rememberMe');
+          localStorage.removeItem('savedEmail');
+        }
         
         // Prepare user data for Redux store
         const userData = {
@@ -139,7 +167,7 @@ const Login = () => {
       }
     } catch (err) {
       toast.dismiss(toastId);
-      const errorMessage = err.message || 'Login failed. Please check your credentials.';
+      const errorMessage = err.data?.message || err.message || 'Login failed. Please check your credentials.';
       toast.error(errorMessage);
     }
   };
@@ -272,11 +300,11 @@ const Login = () => {
             <div className="flex items-center">
               <input
                 id="remember-me"
-                name="remember-me"
+                name="rememberMe"
                 type="checkbox"
                 checked={formData.rememberMe}
-                onChange={(e) => setFormData({...formData, rememberMe: e.target.checked})}
-                className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
+                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
                 Remember me
@@ -284,18 +312,28 @@ const Login = () => {
             </div>
 
             <div className="text-sm">
-              <Link to="/forgot-password" className="font-medium text-primary hover:text-primary-dark">
+              <Link to="/forgot-password" className="font-medium text-primary-600 hover:text-primary-500">
                 Forgot your password?
               </Link>
             </div>
           </div>
 
-          <div>
+          <div className="mt-4">
             <button
               type="submit"
               disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-200"
             >
+              <span className="absolute left-0 inset-y-0 flex items-center pl-3">
+                {isLoading ? (
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  <FiLogIn className="h-5 w-5 text-primary-200 group-hover:text-primary-100" />
+                )}
+              </span>
               {isLoading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
