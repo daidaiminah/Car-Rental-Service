@@ -2,35 +2,37 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { FaCar, FaPlane, FaCalendarAlt, FaCarAlt, FaTools, FaBriefcase } from 'react-icons/fa';
 import Hero from '../components/common/Hero';
+import Title from '../components/Title';
+import { Link } from 'react-router-dom';
 
 const services = [
   {
-    title: 'Car Rentals',
+    title: 'Hourly Rental',
     description: 'Choose from our wide range of vehicles for your next trip. Whether you need a compact car for city driving or an SUV for family vacations, we have you covered.',
     icon: <FaCar className="text-3xl text-primary" />
   },
   {
-    title: 'Airport Transfers',
-    description: 'Reliable and comfortable airport transfers to and from all major airports. Our professional drivers will ensure you reach your destination on time.',
+    title: 'Airport Rental',
+    description: 'Reliable and comfortable airport rental to and from all major airports, weather you are coming from or going to the airport we got you cover. Our professional drivers will ensure you reach your destination on time.',
     icon: <FaPlane className="text-3xl text-primary" />
   },
   {
-    title: 'Long Term Leasing',
-    description: 'Flexible long-term leasing options for businesses and individuals. Enjoy the benefits of a new car without the long-term commitment.',
+    title: 'Daily rental',
+    description: 'Flexible daily options for businesses and individuals. Enjoy the benefits of a new car without the long-term commitment.',
     icon: <FaCalendarAlt className="text-3xl text-primary" />
   },
   {
-    title: 'Luxury Car Rentals',
+    title: 'Long-term rental',
     description: 'Experience the ultimate in comfort and style with our luxury car collection. Perfect for special occasions or when you want to travel in style.',
     icon: <FaCarAlt className="text-3xl text-primary" />
   },
   {
-    title: '24/7 Roadside Assistance',
+    title: 'Out of town trips',
     description: 'Round-the-clock support for any issues you might encounter on the road. Our team is always ready to assist you.',
     icon: <FaTools className="text-3xl text-primary" />
   },
   {
-    title: 'Corporate Solutions',
+    title: 'Graduation Events Rental',
     description: 'Tailored car rental solutions for businesses of all sizes. Enjoy special corporate rates and dedicated account management.',
     icon: <FaBriefcase className="text-3xl text-primary" />
   }
@@ -45,6 +47,7 @@ const ServiceCard = ({ children, className = '' }) => (
 const Services = () => {
   return (
     <div className="bg-gray-50">
+       <Title title="Services" />
       <Hero 
         title="Our Services"
         subtitle="Discover our comprehensive range of car rental services designed to meet all your transportation needs."
@@ -91,6 +94,30 @@ const Services = () => {
               </ServiceCard>
             </motion.div>
           ))}
+        </div>
+
+        <div className="mx-auto mt-10 w-full px-4 sm:px-8 md:w-full md:px-0">
+          <div className="flex flex-col gap-6 border border-gray-100 bg-white p-6 md:flex-row md:items-center md:justify-between md:px-6 md:py-6">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+                <FaCarAlt size={28} />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 md:text-xl">
+                  Be the first to experience the Difference.
+                </h2>
+                <p className="text-sm text-gray-600 md:text-base">
+                  CHATTER AS LOW AS 5 USD but terms and conditions apply
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/signup"
+              className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:bg-primary-dark"
+            >
+              All available only within Liberia
+            </Link>
+          </div>
         </div>
 
         <div className="mt-16 text-center">
