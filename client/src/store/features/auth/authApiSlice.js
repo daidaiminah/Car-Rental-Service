@@ -30,6 +30,7 @@ export const authApiSlice = createApi({
           body: { 
             email, 
             password, 
+            rememberMe,
             ...(role && { role }) // Only include role if it exists
           },
         };

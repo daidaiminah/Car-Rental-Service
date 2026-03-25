@@ -230,6 +230,12 @@ const Footer = () => {
             >
               Safety
             </Link>
+            <Link
+              to="/cookies"
+              className="text-gray-500 hover:text-white text-sm transition-colors"
+            >
+              Safety
+            </Link>
           </div>
         </div>
       </div>

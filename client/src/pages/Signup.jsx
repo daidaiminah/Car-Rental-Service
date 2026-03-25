@@ -9,6 +9,7 @@ import { setCredentials } from '../store/features/auth/authSlice';
 import { toast } from 'react-toastify';
 import Title from '../components/Title';
 import { getApiBaseUrl } from '../utils/socketEnv';
+import ImageUploader from '../components/ImageUploader';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -16,17 +17,18 @@ const Signup = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: '' // Added role field
+    role: '',
+    profilePicture: '',
+    profilePicturePublicId: ''
   });
   
-  const [userType, setUserType] = useState(''); // To track selected user type
+  const [userType, setUserType] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
   
-  // Use RTK Query mutation hook for signup
   const [signup, { isLoading }] = useSignupMutation();
 
   const handleInputChange = (e) => {
@@ -34,6 +36,14 @@ const Signup = () => {
     setFormData(prev => ({
       ...prev,
       [name]: value
+    }));
+  };
+
+  const handleImageUpload = (data) => {
+    setFormData(prev => ({
+      ...prev,
+      profilePicture: data.url,
+      profilePicturePublicId: data.publicId
     }));
   };
 
@@ -48,6 +58,10 @@ const Signup = () => {
     }
     if (!formData.name || !formData.email) {
       toast.error('Please fill in all required fields');
+      return false;
+    }
+    if (!userType) {
+      toast.error('Please select whether you are renting or listing a car');
       return false;
     }
     return true;
@@ -80,32 +94,31 @@ const Signup = () => {
     
     if (!validateForm()) return;
     
-    // Show loading toast
     const toastId = toast.loading('Creating your account...');
 
     try {
-      // Use RTK Query mutation to register the user
-      const { name, email, password, role } = formData;
-      const response = await signup({ name, email, password, role }).unwrap();
+      const { name, email, password, role, profilePicture, profilePicturePublicId } = formData;
+      const response = await signup({ 
+        name, 
+        email, 
+        password, 
+        role,
+        profilePicture,
+        profilePicturePublicId
+      }).unwrap();
       
-      // Dismiss loading toast
       toast.dismiss();
-      
-      // Show success message
       const successMessage = `Welcome to Whip In Town, ${name}! Your account has been created successfully.`;
       toast.success(successMessage);
       
-      // The backend returns user data in response.data
       const { token, ...userData } = response;
       
-      // Store user data in Redux state
       dispatch(setCredentials({
         user: userData,
         token: token,
         role: userData.role
       }));
       
-      // Redirect to login after a short delay
       setTimeout(() => {
         navigate('/login', { 
           replace: true,
@@ -116,23 +129,17 @@ const Signup = () => {
         });
       }, 2000);
     } catch (err) {
-      // console.error('Signup error:', err);
-      // Dismiss loading toast if still showing
       toast.dismiss();
       
-      // Handle specific error cases
       let errorMessage = 'Registration failed. Please try again.';
       
-      // Check for the specific email exists error
       if (err?.data?.message?.includes('already exists') || 
           err?.data?.message?.includes('already registered') ||
           err?.data?.field === 'email') {
         errorMessage = err.data.message || 'This email is already registered. Please use a different email or try logging in.';
       } 
-      // Handle other 400 errors
       else if (err.status === 400) {
         if (err.data?.errors) {
-          // Handle validation errors
           errorMessage = 'Please correct the following errors:';
           Object.values(err.data.errors).forEach((error) => {
             errorMessage += `\n• ${error}`;
@@ -141,12 +148,10 @@ const Signup = () => {
           errorMessage = err.data.message;
         }
       } 
-      // Handle network errors
       else if (err.status === 'FETCH_ERROR') {
         errorMessage = 'Unable to connect to the server. Please check your internet connection.';
       }
       
-      // Show error toast with the appropriate message
       toast.error(errorMessage, {
         autoClose: 5000,
         closeOnClick: true,
@@ -154,14 +159,13 @@ const Signup = () => {
         draggable: true,
       });
       
-      // Also set error for form display if needed
       setError(errorMessage);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-       <Title title="Signup" />
+      <Title title="Signup" />
       <div className="max-w-md w-full space-y-8">
         <div>
           <div className="flex justify-center">
@@ -199,7 +203,7 @@ const Signup = () => {
 
         <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
           <div className="mb-6">
-            <p className="text-center mb-4 font-medium">What are you Register For</p>
+            <p className="text-center mb-4 font-medium">What are you Registering For</p>
             <div className="grid grid-cols-2 gap-4">
               <div 
                 className={`border rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer transition-all ${userType === 'rent' ? 'border-orange-500 bg-orange-50' : 'border-gray-300 hover:border-gray-400'}`}
@@ -225,7 +229,24 @@ const Signup = () => {
             </div>
             {!userType && <p className="text-center text-red-500 text-sm mt-2">Please select what you want to do</p>}
           </div>
-          <div className="rounded-md shadow-sm space-y-4">
+
+          {/* Profile Picture Upload */}
+          <div className="flex justify-center mb-6">
+            <div className="w-32 h-32">
+              <ImageUploader
+                onUpload={handleImageUpload}
+                existingImage={formData.profilePicture}
+                folder="user-profiles"
+                aspectRatio={1}
+                shape="circle"
+              />
+            </div>
+          </div>
+          <p className="text-center text-sm text-gray-500 mb-6">
+            Add a profile picture (optional)
+          </p>
+
+          <div className="space-y-4">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                 Full Name
@@ -266,11 +287,10 @@ const Signup = () => {
                   value={formData.email}
                   onChange={handleInputChange}
                 />
-                {/* Inside your form, after the email input field */}
-                {error && error.toLowerCase().includes('email') && (
-                  <p className="mt-1 text-sm text-red-600">{error}</p>
-                )}
               </div>
+              {error && error.toLowerCase().includes('email') && (
+                <p className="mt-1 text-sm text-red-600">{error}</p>
+              )}
             </div>
 
             <div>

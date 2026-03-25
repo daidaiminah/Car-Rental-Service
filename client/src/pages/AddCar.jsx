@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { FiUpload, FiArrowLeft } from 'react-icons/fi';
+import { FiArrowLeft } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { useAddCarMutation } from '../store/features/cars/carsApiSlice';
 import { selectCurrentUser } from '../store/features/auth/authSlice';
+import ImageUploader from '../components/ImageUploader';
 
 const AddCar = () => {
   const user = useSelector(selectCurrentUser);
   const navigate = useNavigate();
-  const [imagePreview, setImagePreview] = useState(null);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [imageData, setImageData] = useState({ url: '', publicId: '' });
   
   // Use RTK Query mutation hook
   const [addCar, { isLoading }] = useAddCarMutation();
@@ -26,10 +26,8 @@ const AddCar = () => {
     pricePerDay: '',
     location: '',
     description: '',
-    image: '',
     status: 'available'
   });
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setCarData(prev => ({
@@ -37,68 +35,19 @@ const AddCar = () => {
       [name]: value
     }));
   };
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    console.log('File selected:', file); // Debug log
-    
-    if (!file) {
-      console.log('No file selected');
-      return;
-    }
-
-    // Check file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size should be less than 5MB');
-      console.log('File too large:', file.size);
-      return;
-    }
-
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = () => {
-      setImagePreview(reader.result);
-    };
-    reader.readAsDataURL(file);
-    
-    // Store the file object for later upload
-    setSelectedFile(file);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    console.log('Form submitted');
-    console.log('Selected file:', selectedFile);
-    
-    if (!selectedFile) {
-      toast.error('Please select an image');
+    if (!imageData.url) {
+      toast.error('Please upload a car image');
       return;
     }
-
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(selectedFile.type)) {
-      toast.error('Invalid file type. Please upload a JPG, PNG, or WebP image.');
-      return;
-    }
-
-    // Validate file size (5MB max)
-    if (selectedFile.size > 5 * 1024 * 1024) {
-      toast.error('Image size should be less than 5MB');
-      return;
-    }
-
-    // Validate required fields with better labels
+    // Validate required fields
     const requiredFields = [
       { field: 'make', label: 'Make' },
       { field: 'model', label: 'Model' },
       { field: 'year', label: 'Year' },
-      { field: 'pricePerDay', label: 'Price per day' },
-      { field: 'type', label: 'Type' },
-      { field: 'transmission', label: 'Transmission' },
-      { field: 'seats', label: 'Number of seats' },
-      { field: 'fuelType', label: 'Fuel type' }
+      { field: 'pricePerDay', label: 'Price per day' }
     ];
     
     const missingFields = requiredFields
@@ -109,99 +58,30 @@ const AddCar = () => {
       toast.error(`Please fill in all required fields: ${missingFields.join(', ')}`);
       return;
     }
-
-    // Validate year is a number and reasonable (1900-current year + 1)
-    const currentYear = new Date().getFullYear();
-    if (isNaN(carData.year) || carData.year < 1900 || carData.year > currentYear + 1) {
-      toast.error(`Please enter a valid year between 1900 and ${currentYear + 1}`);
-      return;
-    }
-
-    // Validate price is a positive number
-    if (isNaN(carData.pricePerDay) || parseFloat(carData.pricePerDay) <= 0) {
-      toast.error('Please enter a valid price per day (must be greater than 0)');
-      return;
-    }
-
     try {
-      // Create FormData object
       const formData = new FormData();
       
-      // Append all car data fields
-      Object.entries(carData).forEach(([key, value]) => {
-        // Skip empty values to avoid sending undefined or null
+      // Append all car data
+      Object.entries({
+        ...carData,
+        imageUrl: imageData.url,
+        imagePublicId: imageData.publicId,
+        ownerId: user?.id
+      }).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
           formData.append(key, value);
-          console.log(`Added to formData: ${key} =`, value);
         }
       });
       
-      // Append the file
-      formData.append('image', selectedFile);
-      console.log('Added image to formData:', selectedFile.name, '(', selectedFile.size, 'bytes )');
-      
-      // Add owner information
-      if (user) {
-        formData.append('ownerId', user.id);
-        formData.append('owner', user.name || 'Car Owner');
-        console.log('Added owner info - ID:', user.id, 'Name:', user.name);
-      }
-      
-      // Add default values for required fields if not provided
-      if (!formData.has('isAvailable')) {
-        formData.append('isAvailable', 'true');
-        console.log('Added default isAvailable: true');
-      }
-      
-      // Convert pricePerDay to rentalPricePerDay for the server
-      if (formData.has('pricePerDay') && !formData.has('rentalPricePerDay')) {
-        const price = formData.get('pricePerDay');
-        formData.append('rentalPricePerDay', price);
-        console.log('Mapped pricePerDay to rentalPricePerDay:', price);
-      }
-      
-      // Debug: Log form data before sending
-      console.log('FormData contents:');
-      for (let [key, value] of formData.entries()) {
-        console.log(`${key}:`, value);
-      }
-      
-      // Create car using RTK Query mutation with FormData
-      console.log('Sending request to server...');
       const result = await addCar(formData).unwrap();
-      
-      console.log('Server response:', result);
       toast.success('Car added successfully!');
       navigate('/owner');
     } catch (error) {
       console.error('Error adding car:', error);
-      console.error('Error details:', {
-        status: error.status,
-        data: error.data,
-        message: error.message,
-        stack: error.stack
-      });
-      
-      let errorMessage = 'Failed to add car. Please try again.';
-      
-      if (error.status === 413) {
-        errorMessage = 'The image file is too large. Please use an image smaller than 5MB.';
-      } else if (error.data) {
-        if (typeof error.data === 'string') {
-          errorMessage = error.data;
-        } else if (error.data.message) {
-          errorMessage = error.data.message;
-        } else if (error.data.error) {
-          errorMessage = error.data.error;
-        }
-      } else if (error.error) {
-        errorMessage = error.error;
-      }
-      
+      const errorMessage = error.data?.message || 'Failed to add car. Please try again.';
       toast.error(errorMessage);
     }
   };
-
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-3xl mx-auto">
@@ -216,7 +96,7 @@ const AddCar = () => {
         <div className="bg-white rounded-lg p-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-6">Add New Car</h1>
           
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               {/* Car Make */}
               <div>
@@ -389,75 +269,33 @@ const AddCar = () => {
                 rows="4"
                 placeholder="Describe your car's features, condition, etc."
                 className="block w-full rounded-md border-gray-300 focus:border-primary focus:ring-primary"
-                required
               ></textarea>
             </div>
             
             {/* Car Image */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Car Image
               </label>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                {imagePreview ? (
-                  <div className="text-center">
-                    <img
-                      src={imagePreview}
-                      alt="Car preview"
-                      className="mx-auto h-48 w-auto object-cover mb-4"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setImagePreview(null);
-                        setCarData(prev => ({ ...prev, image: '' }));
-                      }}
-                      className="text-sm text-red-600 hover:text-red-500"
-                    >
-                      Remove image
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-1 text-center">
-                    <FiUpload className="mx-auto h-12 w-12 text-gray-400" />
-                    <div className="flex text-sm text-gray-600">
-                      <label
-                        htmlFor="file-upload"
-                        className="relative cursor-pointer bg-white rounded-md font-medium text-orange-600 hover:text-orange-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-orange-500"
-                      >
-                        <span>Upload a file</span>
-                        <input
-                          id="file-upload"
-                          name="image"
-                          type="file"
-                          className="sr-only"
-                          accept="image/*"
-                          onChange={handleImageChange}
-                          onClick={(e) => e.target.value = null} // Allow re-selecting the same file
-                        />
-                      </label>
-                      <p className="pl-1">or drag and drop</p>
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      PNG, JPG, GIF up to 10MB
-                    </p>
-                  </div>
-                )}
-              </div>
+              <ImageUploader
+                onUpload={setImageData}
+                existingImage={imageData.url}
+                folder="car-rental"
+              />
             </div>
             
-            <div className="flex justify-end">
+            <div className="flex justify-end space-x-4">
               <button
                 type="button"
                 onClick={() => navigate(-1)}
-                className="mr-4 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isLoading}
-                className="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
               >
                 {isLoading ? 'Adding...' : 'Add Car'}
               </button>
@@ -468,5 +306,4 @@ const AddCar = () => {
     </div>
   );
 };
-
 export default AddCar;

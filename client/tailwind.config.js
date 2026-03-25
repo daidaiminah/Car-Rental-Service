@@ -23,6 +23,9 @@ export default {
           dark: '#E5E5E5', // light gray
         }
       },
+      zIndex: {
+        '60': '60', // For cookie banner
+      },
     },
   },
   plugins: [],

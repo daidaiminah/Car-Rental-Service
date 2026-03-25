@@ -24,6 +24,9 @@ import AuthCallback from './pages/AuthCallback';
 import NotFound from './pages/NotFound';
 import ForgotPassword from './pages/ForgotPassword';
 import ScrollToTop from './components/ScrollToTop';
+import CookieConsent from './components/CookieConsent';
+import CookiePolicy from './pages/CookiePolicy';
+import CookieSettings from './components/CookieSettings';
 
 // Dashboard pages
 import MyCars from './pages/MyCars';
@@ -117,6 +120,7 @@ function AppContent() {
       />
       <ScrollToTopOnRouteChange />
       <ScrollToTop />
+      <CookieConsent />
       <Routes>
       {/* Public routes */}
       <Route path="/" element={<Layout />}>
@@ -133,6 +137,8 @@ function AppContent() {
         <Route path="cars/:id" element={<CarDetails />} />
         <Route path="booking-success" element={<BookingSuccess />} />
         <Route path="booking-cancel" element={<BookingCancel />} />
+        <Route path="/cookies" element={<CookiePolicy />} />
+        <Route path="/cookie-settings" element={<CookieSettings />} />
       </Route>
 
       {/* ============================================

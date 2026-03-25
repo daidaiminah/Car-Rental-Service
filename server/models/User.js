@@ -12,6 +12,10 @@ export default (sequelize, DataTypes) => {
           type: DataTypes.STRING,
           allowNull: false,
         },
+        profilePicturePublicId: {
+          type: DataTypes.STRING,
+          allowNull: true
+        },
         email: {
           type: DataTypes.STRING,
           allowNull: false,
@@ -34,6 +38,7 @@ export default (sequelize, DataTypes) => {
         },
         profileImage: {
           type: DataTypes.STRING,
+          allowNull: true,
         },
         authProvider: {
           type: DataTypes.STRING,

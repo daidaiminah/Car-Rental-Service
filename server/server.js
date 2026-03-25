@@ -16,7 +16,7 @@ import cors from 'cors';
 import paymentRoutes from "./routers/paymentRoutes.js";
 import wishlistRoutes from "./routers/wishlistRoutes.js";
 import { initSocket } from "./socket/index.js";
-
+import uploadRoutes from './routers/UploadRoutes.js';
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -61,7 +61,7 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/search", searchRoutes);
-
+app.use('/api/upload', uploadRoutes);
 
 // Determine port - Render and other hosts inject one via environment
 const PORT = parseInt(process.env.PORT, 10) || 4005;

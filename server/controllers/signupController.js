@@ -8,7 +8,7 @@ export const signupController = async (req, res) => {
     console.log('Environment:', process.env.NODE_ENV);
     
     try {
-        const { name, email, password, role } = req.body;
+        const { name, email, password, role, profileImage, profilePicturePublicId } = req.body;
 
         // Validate required fields
         if (!name || !email || !password) {
@@ -56,7 +56,9 @@ export const signupController = async (req, res) => {
             email,
             password: hashedPassword,
             role: role || 'customer', // Use provided role or default to customer
-            isAdmin: false // Default to regular user
+            isAdmin: false, // Default to regular user
+            profileImage: profileImage || null,
+            profilePicturePublicId: profilePicturePublicId || null
         });
 
         console.log('User created successfully:', { userId: user.id, email: user.email });
