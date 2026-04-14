@@ -2,6 +2,9 @@ import React from 'react';
 import { FaCar, FaShieldAlt, FaClock, FaMapMarkerAlt, FaUsers, FaHandshake } from 'react-icons/fa';
 import Hero from '../components/common/Hero';
 import Thompson from '../assets/images/thompson1.jpg';
+import Title from '../components/Title';
+import { motion } from 'framer-motion';
+import HondaCar from '../assets/images/aboutbg.jfif';
 
 const About = () => {
   const features = [
@@ -29,11 +32,44 @@ const About = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Hero 
-        title="About Whip In Time"
-        subtitle="Your trusted partner for premium car rental services"
-        showButtons={true}
-      />
+      <Title title="About" />
+      {/* Hero Section with Background */}
+      <motion.div 
+        className="relative bg-gray-900"
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: { opacity: 0 },
+          visible: { opacity: 1, transition: { duration: 0.8 } }
+        }}
+      >
+        {/* Background Image */}
+        <motion.div 
+          className="absolute inset-0 bg-cover bg-center opacity-30"
+          style={{
+            backgroundImage: `url(${HondaCar})`
+          }}
+          initial={{ scale: 1.1, opacity: 0 }}
+          animate={{ scale: 1, opacity: 0.3 }}
+          transition={{ duration: 1.2 }}
+        />
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 md:py-40 lg:py-48 min-h-[500px] flex items-center justify-center">
+          <motion.div 
+            className="max-w-3xl text-center"
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl">
+              About Whip In Time
+            </h1>
+            <p className="mt-6 text-xl text-gray-300">
+              Your trusted partner for premium car rental services
+            </p>
+          </motion.div>
+        </div>
+      </motion.div>
       <div className="py-12 bg-light-gray">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">

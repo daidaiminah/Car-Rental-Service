@@ -426,7 +426,7 @@ useEffect(() => {
             <div className="flex space-x-4">
               <div className="flex items-center">
                 <FiMapPin className="mr-1 text-primary" />
-                <span>123 Car Street, Auto City</span>
+                <span>ELWA Rehab, Monrovia, Liberia</span>
               </div>
               <div className="hidden md:flex items-center">
                 <FiPhone className="mr-1 text-primary" />
@@ -434,7 +434,7 @@ useEffect(() => {
               </div>
               <div className="hidden md:flex items-center">
                 <FiMail className="mr-1 text-primary" />
-                <span>info@comfortcarrental.com</span>
+                <span>info@whipintime.com</span>
               </div>
             </div>
             <div className="flex space-x-3">

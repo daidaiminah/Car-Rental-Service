@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FiMapPin, FiCreditCard, FiDollarSign, FiSmartphone, FiCalendar, FiClock, FiSearch, FiStar, FiChevronRight, FiShield } from 'react-icons/fi';
+import { FiMapPin, FiCalendar, FiClock, FiSearch, FiStar } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { getApiBaseUrl } from '../utils/socketEnv';
@@ -389,7 +389,7 @@ const Home = () => {
             className="text-center mb-12"
             variants={slideUp}
           >
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose Comfort Car Rental Service </h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose Whip In Time Rental Service </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">Experience the best car rental service with our premium vehicles and exceptional customer support</p>
           </motion.div>
           

@@ -19,6 +19,7 @@ import CarDetails from './pages/CarDetails';
 import Rentals from './pages/Rentals';
 import RentalDetails from './pages/RentalDetails';
 import Login from './pages/Login';
+import AdminLogin from './pages/AdminLogin';
 import Signup from './pages/Signup';
 import AuthCallback from './pages/AuthCallback';
 import NotFound from './pages/NotFound';
@@ -219,7 +220,7 @@ function AppContent() {
         </ProtectedRoute>
       } />
       {/* Auth routes */}
-      
+      <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/auth/callback" element={<AuthCallback />} />

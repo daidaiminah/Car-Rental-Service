@@ -165,6 +165,12 @@ const Login = () => {
               Return to home
             </a>
           </p>
+          <p className="mt-2 text-center text-xs text-gray-500">
+            Admin?{' '}
+            <Link to="/admin/login" className="font-medium text-gray-700 hover:text-primary">
+              Sign in here
+            </Link>
+          </p>
         </div>
         
         {error && (
